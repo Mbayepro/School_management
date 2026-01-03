@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>School Management – Tableau de bord</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/dashboard-directeur.css"/>
+  <link rel="stylesheet" href="css/style.css"/> 
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.svg" alt="Logo" class="nav-logo">
+    <span class="app">School Management</span>
+    <span class="role">Direction</span>
+  </div>
+  <div class="top-actions" style="display:flex; gap:8px; align-items:center;">
+    <button id="addProfBtn" class="btn primary">Ajouter Professeur</button>
+    <button id="changePwdOpen" class="btn ghost">Changer le mot de passe</button>
+    <button id="logoutBtn" class="btn danger">
+    <span>Déconnexion</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  
+  <div class="welcome-section fade-in">
+    <h1 id="welcomeMsg">Bonjour, Directeur 👋</h1>
+    <p class="subtitle">Voici ce qui se passe dans votre établissement aujourd'hui.</p>
+  </div>
+  <p id="error-message" class="muted" style="display:none; background:#fee2e2; color:#991b1b; padding:8px 12px; border-radius:8px; margin-bottom:12px; border:1px solid #fecaca;"></p>
+
+  <!-- MAIN STATUS PANEL -->
+  <section class="panel fade-in-up" style="animation-delay: 0.1s;">
+    <header class="panel-head">
+      <h2>Vue d'ensemble</h2>
+      <span class="pill" id="statusPill">Analyse en cours...</span>
+    </header>
+
+    <!-- KEY METRICS -->
+    <div class="metrics">
+      <div class="metric-card">
+        <div class="metric-icon blue">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">Total Élèves</span>
+          <strong class="metric-value" id="valEleves">-</strong>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon orange">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M17 21v-8H7v8"/></svg>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">Classes</span>
+          <strong class="metric-value" id="valClasses">-</strong>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon red">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">Absents auj.</span>
+          <strong class="metric-value" id="valAbsents">-</strong>
+        </div>
+      </div>
+
+       <div class="metric-card">
+        <div class="metric-icon purple">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">Impayés (mois)</span>
+          <strong class="metric-value" id="valImpayes">-</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+
+  <!-- ACTION CARDS GRID -->
+  <div class="cards-grid fade-in-up" style="animation-delay: 0.2s;">
+    
+    <!-- CARD: PRÉSENCES -->
+    <a href="presences-directeur.html" class="card-action">
+      <div class="card-icon-bg blue">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      </div>
+      <div class="card-text">
+        <h3>Présences</h3>
+        <p>Voir qui est présent ou absent aujourd’hui.</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <!-- CARD: ÉLÈVES -->
+    <a href="eleves.html" class="card-action">
+      <div class="card-icon-bg green">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      </div>
+      <div class="card-text">
+        <h3>Élèves</h3>
+        <p>Gérer les inscriptions et les dossiers élèves.</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <!-- CARD: PAIEMENTS -->
+    <a href="paiements.html" class="card-action">
+      <div class="card-icon-bg purple">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      </div>
+      <div class="card-text">
+        <h3>Paiements</h3>
+        <p>Suivre les paiements et imprimer les reçus.</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <!-- CARD: CLASSES -->
+    <a href="classes.html" class="card-action">
+      <div class="card-icon-bg orange">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M17 21v-8H7v8"/></svg>
+      </div>
+      <div class="card-text">
+        <h3>Classes</h3>
+        <p>Configurer les classes et les niveaux.</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+  </div>
+
+</main>
+
+<section id="changePwdPanel" class="panel hidden" style="max-width:720px; margin: 0 auto 24px;">
+  <header class="panel-head">
+    <h2>Modifier le mot de passe</h2>
+  </header>
+  <label>
+    Nouveau mot de passe
+    <input type="password" id="changeNewPassword" />
+  </label>
+  <label>
+    Confirmer le mot de passe
+    <input type="password" id="changeConfirmPassword" />
+  </label>
+  <button id="changePwdSubmit" class="btn primary" style="margin-top:8px;">Mettre à jour</button>
+  <p id="changePwdMessage" class="muted" style="display:none;"></p>
+</section>
+
+<script type="module" src="js/role-guard.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script type="module" src="js/directeur.js"></script>
+<script type="module">
+  import { setupLogoutButton, setupTopbarBrand } from './js/auth.js';
+  document.addEventListener('DOMContentLoaded', () => {
+    setupTopbarBrand();
+    setupLogoutButton();
+  });
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/js/sw.js');
+    });
+  }
+</script>
+</body>
+</html>

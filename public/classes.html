@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestion des Classes – School Management</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/dashboard-directeur.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/classes.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.svg" alt="Logo" class="nav-logo">
+    <span class="app">School Management</span>
+    <span class="role">Direction</span>
+  </div>
+  <div class="top-actions">
+    <a href="dashboard-directeur.html" class="btn ghost">← Dashboard</a>
+    <button id="logoutBtn" class="btn danger">Déconnexion</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="welcome-section fade-in">
+    <h1>Gestion des classes</h1>
+    <p class="subtitle">Configurez les niveaux et les classes de votre établissement.</p>
+  </div>
+
+  <div class="classes-layout">
+    
+    <!-- ADD CLASS PANEL -->
+    <section class="panel fade-in-up" style="animation-delay: 0.1s;">
+      <header class="panel-head">
+        <h2>Ajouter une classe</h2>
+      </header>
+      <form id="classeForm">
+        <label>
+          Niveau
+          <select id="classeNiveau" required>
+            <option value="">-- Choisir un niveau --</option>
+            <option value="primaire">Primaire</option>
+            <option value="college">Collège</option>
+            <option value="lycee">Lycée</option>
+          </select>
+        </label>
+        <label>
+          Nom de la classe
+          <input type="text" id="classeNom" placeholder="Ex: CP A, 6ème B..." required />
+        </label>
+        <button type="submit" id="saveClasseBtn">
+          Enregistrer la classe
+        </button>
+      </form>
+      <p id="classeMessage" class="error-message"></p>
+    </section>
+
+    <!-- LIST CLASSES PANEL -->
+    <section class="panel fade-in-up" style="animation-delay: 0.2s;">
+      <header class="panel-head">
+        <h2>Liste des classes</h2>
+        <span class="pill" id="totalClassesPill">0 classes</span>
+      </header>
+      
+      <div id="classesGrid" class="classes-grid">
+        <!-- Classes will be injected here -->
+      </div>
+      <p id="noClassesMsg" class="muted hidden" style="text-align: center; margin-top: 20px;">Aucune classe enregistrée.</p>
+    </section>
+
+  </div>
+</main>
+
+<script type="module" src="js/role-guard.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script type="module" src="js/classes.js"></script>
+<script type="module">
+  import { setupLogoutButton, setupTopbarBrand } from './js/auth.js';
+  document.addEventListener('DOMContentLoaded', () => {
+    setupTopbarBrand();
+    setupLogoutButton();
+  });
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/js/sw.js');
+    });
+  }
+</script>
+</body>
+</html>

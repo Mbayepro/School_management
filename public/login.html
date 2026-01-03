@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Management – Connexion</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <main class="login-container">
+    <div style="text-align: center; margin-bottom: 1rem;">
+      <img src="logo.svg" alt="Logo" style="height: 64px; width: auto;">
+    </div>
+    <h1>School Management</h1>
+    <p class="subtitle">Connexion à votre espace</p>
+
+    <!-- LOGIN FORM -->
+    <form id="login-form">
+      <label>
+        Email
+        <input type="email" id="email" required />
+      </label>
+
+      <label>
+        Mot de passe
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="password" id="password" required style="flex:1;" />
+          <button id="togglePwd" class="btn btn-secondary btn-sm" type="button">Afficher</button>
+        </div>
+      </label>
+
+      <button type="submit" id="login-btn">Se connecter</button>
+    </form>
+
+    <!-- SIGNUP FORM (Hidden by default) -->
+    <form id="signup-form" class="hidden">
+      <label>
+        Nom de l'école
+        <input type="text" id="signup-school" placeholder="Ex: Groupe Scolaire Excellence" required />
+      </label>
+
+      <label>
+        Email
+        <input type="email" id="signup-email" required />
+      </label>
+
+      <label>
+        Mot de passe
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="password" id="signup-password" required style="flex:1;" />
+        </div>
+      </label>
+
+      <button type="submit" id="signup-btn" class="btn primary">Créer mon compte</button>
+    </form>
+
+    <p id="error-message" class="error"></p>
+    <p id="success-message" class="success hidden" style="color: #10b981; font-weight: bold; margin-top: 10px;"></p>
+
+    <div style="margin-top:12px; text-align:center;">
+      <a href="#" id="toggle-signup" class="btn-link" style="display:block; margin-bottom:8px; font-weight:bold; color:#2563eb;">Créer un compte Directeur</a>
+      <a href="#" id="toggle-login" class="btn-link hidden" style="display:block; margin-bottom:8px; font-weight:bold; color:#2563eb;">Retour à la connexion</a>
+      <a href="#" id="forgot-link" class="btn-link">Mot de passe oublié ?</a>
+    </div>
+
+    <section id="forgot-section" class="panel hidden" style="margin-top:12px;">
+      <header class="panel-head">
+        <h2>Récupérer votre compte</h2>
+      </header>
+      <label>
+        Email
+        <input type="email" id="forgot-email" placeholder="Votre email" />
+      </label>
+      <button id="reset-btn" class="btn btn-secondary" style="margin-top:8px;">Envoyer le lien de réinitialisation</button>
+      <p id="reset-message" class="muted" style="display:none;"></p>
+    </section>
+
+    <section id="recovery-section" class="panel hidden" style="margin-top:12px;">
+      <header class="panel-head">
+        <h2>Définir un nouveau mot de passe</h2>
+      </header>
+      <label>
+        Nouveau mot de passe
+        <input type="password" id="new-password" />
+      </label>
+      <label>
+        Confirmer le mot de passe
+        <input type="password" id="confirm-password" />
+      </label>
+      <button id="update-password-btn" class="btn primary" style="margin-top:8px;">Mettre à jour</button>
+      <p id="update-message" class="muted" style="display:none;"></p>
+    </section>
+  </main>
+
+  <!-- ⚠️ UN SEUL chargement -->
+  <script type="module" src="js/auth.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/js/sw.js');
+      });
+    }
+  </script>
+  <script type="module">
+    document.addEventListener('DOMContentLoaded', () => {
+      const pwd = document.getElementById('password');
+      const toggle = document.getElementById('togglePwd');
+      if (pwd && toggle) {
+        toggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          const isText = pwd.type === 'text';
+          pwd.type = isText ? 'password' : 'text';
+          toggle.textContent = isText ? 'Afficher' : 'Masquer';
+        });
+      }
+    });
+  </script>
+</body>
+</html>

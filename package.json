@@ -1,0 +1,17 @@
+{
+  "name": "school-management",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Gestion école – site statique (HTML/JS) avec lint minimal",
+  "scripts": {
+    "lint": "eslint \"public/**/*.js\"",
+    "lint:fix": "eslint \"public/**/*.js\" --fix"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.4"
+  }
+}

@@ -1,0 +1,146 @@
+/* Inherits from dashboard-directeur.css */
+
+/* Form Styles */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 0.9rem;
+  gap: 8px;
+}
+
+input[type="text"],
+select {
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: #f8fafc;
+  color: #1e293b;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+input[type="text"]:focus,
+select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+button[type="submit"] {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+button[type="submit"]:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+/* Class List Grid */
+.classes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.class-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.class-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  border-color: #cbd5e1;
+}
+
+.class-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.class-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.class-details h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  color: #1e293b;
+}
+
+.class-details p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  text-transform: capitalize;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.error-message {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 16px;
+  font-size: 0.9rem;
+  display: none;
+}
+
+/* Utilities */
+.hidden { display: none !important; }
+.muted { color: #94a3b8; font-size: 0.9rem; }

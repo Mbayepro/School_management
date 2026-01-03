@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Présences – School Management</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/dashboard-directeur.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.svg" alt="Logo" class="nav-logo">
+    <span class="app">School Management</span>
+    <span class="role">Professeur</span>
+  </div>
+  <div class="top-actions">
+    <a href="dashboard-professeur.html" class="btn btn-secondary">← Dashboard prof</a>
+    <button id="logoutBtn" class="btn danger">Déconnexion</button>
+  </div>
+</header>
+
+<div style="background:#ffffff; border-bottom:1px solid #e2e8f0;">
+  <div class="container" style="padding:10px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <label style="display:flex; align-items:center; gap:8px; margin:0;">
+      <span style="font-weight:600; color:#475569;">Classe</span>
+      <select id="classeSelect" style="min-width:200px;"></select>
+    </label>
+  </div>
+</div>
+
+<main class="wrap">
+  
+
+  <section id="presenceSection" class="panel hidden">
+    <header class="panel-head panel-head-responsive">
+      <h2>Appel du jour</h2>
+      <div class="panel-actions-responsive">
+        <div class="muted">Date: <span id="todayDate"></span></div>
+        <span id="statusPill" class="status-pill success hidden">Prêt à enregistrer</span>
+        <span id="currentClassBadge" class="pill">Classe: –</span>
+      </div>
+    </header>
+
+    <ul id="elevesList" class="eleves-list"></ul>
+
+    <div class="actions" style="display:flex; gap:10px; justify-content:flex-start; margin-top:12px;">
+      <button id="saveBtn" class="btn primary">Enregistrer les présences</button>
+      <button id="editBtn" class="btn btn-secondary hidden">Modifier</button>
+    </div>
+    <p id="error-message" class="error"></p>
+  </section>
+
+</main>
+
+<script type="module" src="js/role-guard.js"></script>
+<script type="module" src="js/presences.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script type="module">
+  import { setupLogoutButton, setupTopbarBrand } from './js/auth.js';
+  document.addEventListener('DOMContentLoaded', () => {
+    setupTopbarBrand();
+    setupLogoutButton();
+  });
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/js/sw.js');
+    });
+  }
+</script>
+</body>
+</html>
