@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Comptabilité - School Management</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .filters {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+    .filters label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+    .filters select, .filters input {
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 1rem;
+        min-width: 150px;
+    }
+    .payment-list {
+        display: grid;
+        gap: 12px;
+    }
+    .payment-card {
+        background: white;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .student-info h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #1e293b;
+    }
+    .student-info p {
+        margin: 4px 0 0;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+    .payment-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .status-paid {
+        background: #dcfce7;
+        color: #166534;
+    }
+    .status-unpaid {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    .actions {
+        display: flex;
+        gap: 8px;
+    }
+    .btn-whatsapp {
+        background-color: #25D366;
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .btn-whatsapp:hover {
+        background-color: #128c7e;
+    }
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .summary-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .summary-value {
+        font-size: 2rem;
+        font-weight: 700;
+        display: block;
+        margin-top: 8px;
+    }
+    .val-green { color: #166534; }
+    .val-red { color: #991b1b; }
+    .val-blue { color: #2563eb; }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <a href="dashboard-directeur.html" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.2rem;">←</span>
+        <span class="app">Comptabilité</span>
+    </a>
+  </div>
+  <div class="top-actions">
+    <button id="logoutBtn" class="btn danger">Déconnexion</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="welcome-section">
+    <h1>Suivi des Écolages</h1>
+    <p class="subtitle">Gérez les paiements mensuels et relancez les retards.</p>
+  </div>
+
+  <div class="summary-cards">
+      <div class="summary-card">
+          <span class="metric-label">Total Encaissé</span>
+          <span class="summary-value val-green" id="totalPaid">0 FCFA</span>
+      </div>
+      <div class="summary-card">
+          <span class="metric-label">Reste à Recouvrer</span>
+          <span class="summary-value val-red" id="totalUnpaid">0 FCFA</span>
+      </div>
+      <div class="summary-card">
+          <span class="metric-label">Taux de Recouvrement</span>
+          <span class="summary-value val-blue" id="recoveryRate">0%</span>
+      </div>
+  </div>
+
+  <section class="panel">
+    <div class="filters">
+        <label>
+            Mois
+            <input type="month" id="monthFilter">
+        </label>
+        <label>
+            Classe
+            <select id="classFilter">
+                <option value="all">Toutes les classes</option>
+            </select>
+        </label>
+        <label>
+            Statut
+            <select id="statusFilter">
+                <option value="all">Tout</option>
+                <option value="paid">Payé</option>
+                <option value="unpaid">Non Payé</option>
+            </select>
+        </label>
+        <label style="flex-grow:1;">
+            Recherche
+            <input type="text" id="searchFilter" placeholder="Nom de l'élève...">
+        </label>
+    </div>
+
+    <div id="paymentList" class="payment-list">
+        <div style="text-align:center; padding:40px; color:#94a3b8;">Chargement des données...</div>
+    </div>
+  </section>
+
+</main>
+
+<script type="module" src="js/role-guard.js"></script>
+<script type="module" src="js/paiements.js"></script>
+</body>
+</html>

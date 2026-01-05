@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Management – La solution de gestion scolaire moderne</title>
+  <meta name="description" content="Gérez votre école privée simplement : élèves, paiements, présences et cartes d'étudiant.">
+  <meta name="theme-color" content="#e3f2fd" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Landing Page Specific Styles */
+    body {
+      background: #f8fafc;
+      color: #334155;
+    }
+
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(180deg, #e3f2fd 0%, #f1f5f9 100%);
+      padding: 100px 20px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      color: #0f172a;
+      margin-bottom: 24px;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: #475569;
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 60px;
+    }
+
+    .btn-lg {
+      padding: 16px 32px;
+      font-size: 1.1rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: all 0.2s;
+    }
+    
+    .btn-lg:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Mockup Dashboard */
+    .dashboard-preview {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 8px solid white;
+      max-width: 1000px;
+      margin: 0 auto;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .mockup-header {
+      background: #e3f2fd;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .mockup-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #cbd5e1;
+    }
+    .mockup-dot.red { background: #ef4444; }
+    .mockup-dot.yellow { background: #f59e0b; }
+    .mockup-dot.green { background: #22c55e; }
+
+    .mockup-body {
+      padding: 20px;
+      background: #f8fafc;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      min-height: 300px;
+    }
+
+    .mockup-card {
+      background: white;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .mockup-card.wide { grid-column: span 2; }
+    .mockup-card.full { grid-column: span 4; height: 150px; }
+
+    .skeleton-text {
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .skeleton-text.w-50 { width: 50%; }
+    .skeleton-text.w-75 { width: 75%; }
+    
+    .skeleton-circle {
+      width: 40px; height: 40px;
+      background: #eff6ff;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+
+    /* Features Section */
+    .features {
+      padding: 100px 20px;
+      background: white;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 60px;
+    }
+
+    .section-header h2 {
+      font-size: 2.5rem;
+      color: #0f172a;
+      margin-bottom: 16px;
+    }
+
+    .section-header p {
+      font-size: 1.2rem;
+      color: #64748b;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      padding: 30px;
+      border-radius: 20px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      background: white;
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      border-color: #cbd5e1;
+    }
+
+    .feature-icon {
+      width: 60px; height: 60px;
+      background: #eff6ff;
+      color: #2563eb;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 24px;
+    }
+    
+    .feature-card h3 {
+      font-size: 1.5rem;
+      color: #0f172a;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 60px 20px;
+      text-align: center;
+    }
+    
+    footer .brand {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+
+    footer p {
+      margin-bottom: 20px;
+    }
+
+    footer .copyright {
+      font-size: 0.9rem;
+      border-top: 1px solid #1e293b;
+      padding-top: 20px;
+      margin-top: 40px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.5rem; }
+      .mockup-body { grid-template-columns: 1fr; }
+      .mockup-card.wide, .mockup-card.full { grid-column: span 1; }
+      .hero-buttons { flex-direction: column; }
+      .btn-lg { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="topbar">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+      <div class="brand" style="display:flex; align-items:center; gap:10px;">
+        <img src="logo.svg" alt="Logo" style="height:32px;">
+        <span style="font-weight:800; font-size:1.2rem; color:#1e293b;">School Management</span>
+      </div>
+      <nav>
+        <a href="login.html" class="btn primary">Accès Directeur</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>La gestion scolaire,<br><span style="color:#2563eb;">réinventée.</span></h1>
+      <p>Simplifiez la vie de votre établissement. Inscriptions, paiements, présences : tout est centralisé, sécurisé et accessible partout.</p>
+      
+      <div class="hero-buttons">
+        <a href="login.html" class="btn primary btn-lg">Commencer maintenant</a>
+        <a href="#features" class="btn ghost btn-lg" style="background:white; border:1px solid #cbd5e1;">En savoir plus</a>
+        <button id="installBtn" class="btn btn-lg" style="display:none; background:#22c55e;">Installer l'app</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="features">
+    <div class="section-header">
+      <h2>Tout ce dont vous avez besoin</h2>
+      <p>Une suite complète d'outils pour gérer votre école privée sans stress technique.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-users"></i></div>
+        <h3>Gestion des Élèves</h3>
+        <p>Inscrivez vos élèves en quelques clics. Dossiers complets, photos, et génération automatique de cartes d'étudiant.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-money-bill-wave"></i></div>
+        <h3>Suivi des Paiements</h3>
+        <p>Gardez une trace précise de la scolarité. Générez des reçus instantanément et suivez les impayés en temps réel.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-calendar-check"></i></div>
+        <h3>Présences Simplifiées</h3>
+        <p>Marquez les absences rapidement. Les statistiques se mettent à jour automatiquement pour un suivi rigoureux.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-chart-pie"></i></div>
+        <h3>Tableau de Bord</h3>
+        <p>Une vue d'ensemble claire de votre établissement. Indicateurs clés, graphiques et alertes pour prendre les bonnes décisions.</p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+        <h3>Mobile First</h3>
+        <p>Accédez à votre gestion scolaire depuis n'importe où. Interface optimisée pour smartphones et tablettes.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon"><i class="fas fa-print"></i></div>
+        <h3>Impressions PDF</h3>
+        <p>Générez des documents professionnels : listes de classes, bulletins, cartes d'identité et reçus de paiement.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="brand">School Management</div>
+    <p>La solution de confiance pour les directeurs d'écoles exigeants.</p>
+    <div class="copyright">
+      &copy; 2026 School Management. Tous droits réservés.
+    </div>
+  </footer>
+
+</body>
+<script>
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) installBtn.style.display = 'inline-block';
+  });
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  }
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/js/sw.js');
+    });
+  }
+</script>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>School Management – Super Admin</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/dashboard-directeur.css"/>
+  <link rel="stylesheet" href="css/style.css"/> 
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.svg" alt="Logo" class="nav-logo">
+    <span class="app">School Management</span>
+    <span class="role">Super Admin</span>
+  </div>
+  <div class="top-actions" style="display:flex; gap:8px; align-items:center;">
+    <button id="changePwdOpen" class="btn ghost">Changer le mot de passe</button>
+    <button id="logoutBtn" class="btn danger">Déconnexion</button>
+  </div>
+  </header>
+
+<main class="wrap">
+  <div class="welcome-section fade-in">
+    <h1>Super Admin</h1>
+    <p class="subtitle">Activation des comptes directeurs.</p>
+  </div>
+
+  <div style="text-align: right; margin-bottom: 8px;">
+    <button id="toggleAdvanced" class="btn ghost" style="font-size:0.9rem;">Configuration</button>
+  </div>
+
+  <section class="panel fade-in-up hidden" id="advancedSupabase">
+    <header class="panel-head">
+      <h2>Configuration Supabase</h2>
+      <span class="pill">Client</span>
+    </header>
+    <label>
+      SUPABASE_URL
+      <input type="text" id="supabaseUrlInput" placeholder="https://xxxx.supabase.co" />
+    </label>
+    <label>
+      SUPABASE_ANON_KEY
+      <input type="text" id="supabaseAnonInput" placeholder="Clé anonyme" />
+    </label>
+    <button id="saveSupabaseConfig" class="btn btn-secondary" style="margin-top:8px;">Enregistrer</button>
+    <p id="supabaseConfigMsg" class="muted" style="display:none;"></p>
+  </section>
+
+  <section class="panel fade-in-up" style="animation-delay: 0.1s;">
+    <header class="panel-head">
+      <h2>Gestion des Profils</h2>
+    </header>
+    <p class="muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
+      Saisissez l'email existant dans Auth, choisissez un rôle et, si besoin, l'UUID de l'école.
+    </p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+      <label>
+        Email
+        <input type="email" id="profileEmailInput" placeholder="ex: user@ecole.com" />
+      </label>
+      <label>
+        Mot de passe (Création)
+        <input type="text" id="profilePasswordInput" placeholder="Min 6 caractères" />
+      </label>
+      <label>
+        Rôle
+        <select id="profileRoleSelect">
+          <option value="director">directeur</option>
+          <option value="professeur">professeur</option>
+          <option value="super_admin">super_admin</option>
+        </select>
+      </label>
+      <label>
+        Nom de l'École (Création)
+        <input type="text" id="profileEcoleInput" placeholder="Ex: École Privée Dakar" />
+      </label>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button id="saveProfileBtn" class="btn primary">Créer / Mettre à jour</button>
+    </div>
+    <p id="profileActionMsg" class="muted" style="display:none;"></p>
+  </section>
+</main>
+
+<section id="changePwdPanel" class="panel hidden" style="max-width:720px; margin: 0 auto 24px;">
+  <header class="panel-head">
+    <h2>Modifier le mot de passe</h2>
+  </header>
+  <label>
+    Nouveau mot de passe
+    <input type="password" id="changeNewPassword" />
+  </label>
+  <label>
+    Confirmer le mot de passe
+    <input type="password" id="changeConfirmPassword" />
+  </label>
+  <button id="changePwdSubmit" class="btn primary" style="margin-top:8px;">Mettre à jour</button>
+  <p id="changePwdMessage" class="muted" style="display:none;"></p>
+</section>
+
+<script type="module" src="js/role-guard.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script type="module" src="js/superadmin.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/js/sw.js');
+    });
+  }
+</script>
+</body>
+</html>

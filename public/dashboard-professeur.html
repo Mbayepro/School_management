@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Management – Professeur</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/dashboard-directeur.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Specific overrides for teacher dashboard if needed */
+    .action-card {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 16px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s;
+      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    }
+    .action-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
+    }
+    .action-card h3 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    .action-card p {
+      margin: 4px 0 0 0;
+      opacity: 0.9;
+      font-size: 0.95rem;
+    }
+    .action-icon {
+      background: rgba(255,255,255,0.2);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .classes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .class-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+    .class-card:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      transform: translateY(-2px);
+    }
+    .class-card h3 {
+      margin: 0 0 8px 0;
+      color: #1e293b;
+    }
+    .class-card .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #eff6ff;
+      color: #3b82f6;
+      border-radius: 99px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.svg" alt="Logo" class="nav-logo">
+    <span class="app">School Management</span>
+    <span class="role">Professeur</span>
+  </div>
+  <div class="top-actions">
+    <button id="changePwdOpen" class="btn ghost">Changer le mot de passe</button>
+    <button id="logoutBtn" class="btn danger">Déconnexion</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- WELCOME SECTION -->
+  <div class="welcome-section fade-in">
+    <h1>Tableau de bord</h1>
+    <p class="subtitle">Bienvenue dans votre espace d'enseignement.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr; gap: 32px;">
+    
+    <!-- ACTIONS -->
+    <section class="panel fade-in-up" style="animation-delay: 0.1s;">
+      <header class="panel-head">
+        <h2>Mes actions rapides</h2>
+      </header>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        <a href="presences.html" class="action-card">
+          <div>
+            <h3>Faire l'appel</h3>
+            <p>Enregistrer les présences du jour</p>
+          </div>
+          <div class="action-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- CLASSES LIST -->
+    <section class="panel fade-in-up" style="animation-delay: 0.2s;">
+      <header class="panel-head">
+        <h2>Mes classes</h2>
+        <span class="pill" id="classesCount">0 classes</span>
+      </header>
+      
+      <div id="classesList" class="classes-grid">
+        <!-- Classes will be injected here -->
+        <div class="muted">Chargement des classes...</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<section id="changePwdPanel" class="panel hidden" style="max-width:720px; margin: 0 auto 24px;">
+  <header class="panel-head">
+    <h2>Modifier le mot de passe</h2>
+  </header>
+  <label>
+    Nouveau mot de passe
+    <input type="password" id="changeNewPassword" />
+  </label>
+  <label>
+    Confirmer le mot de passe
+    <input type="password" id="changeConfirmPassword" />
+  </label>
+  <button id="changePwdSubmit" class="btn primary" style="margin-top:8px;">Mettre à jour</button>
+  <p id="changePwdMessage" class="muted" style="display:none;"></p>
+</section>
+
+<script type="module" src="js/role-guard.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script type="module" src="js/professeur.js"></script>
+<script type="module">
+  import { setupLogoutButton, setupTopbarBrand } from './js/auth.js';
+  document.addEventListener('DOMContentLoaded', () => {
+    setupTopbarBrand();
+    setupLogoutButton();
+  });
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/js/sw.js');
+    });
+  }
+</script>
+</body>
+</html>
