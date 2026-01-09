@@ -203,54 +203,138 @@ window.printReceipt = function(eleveId) {
     const dateStr = new Date().toLocaleDateString('fr-FR');
     const montant = (payment.montant || 0).toLocaleString('fr-FR');
     const mois = document.getElementById('monthFilter').value;
+    
+    // Générer un numéro de reçu dynamique
+    const receiptNumber = 'REC-2026-' + String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
 
-    const win = window.open('', 'Reçu', 'width=600,height=400');
+    const win = window.open('', 'Reçu', 'width=800,height=600');
     win.document.write(`
-        <html>
+        <!DOCTYPE html>
+        <html lang="fr">
         <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Reçu de Paiement</title>
+            <script src="https://cdn.tailwindcss.com"></script>
             <style>
-                body { font-family: 'Courier New', monospace; padding: 20px; }
-                .receipt { border: 2px dashed #000; padding: 20px; max-width: 400px; margin: 0 auto; }
-                h1 { text-align: center; font-size: 18px; text-transform: uppercase; margin-bottom: 5px; }
-                .school-name { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 16px; }
-                .row { display: flex; justify-content: space-between; margin: 10px 0; }
-                .total { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 10px 0; font-weight: bold; margin-top: 20px; }
-                .footer { text-align: center; margin-top: 30px; font-size: 12px; }
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    .receipt-container, .receipt-container * {
+                        visibility: visible;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                    body {
+                        background: white !important;
+                    }
+                    .receipt-container {
+                        position: fixed !important;
+                        top: 50% !important;
+                        left: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        width: 90% !important;
+                        max-width: 600px !important;
+                        margin: 0 !important;
+                        box-shadow: none !important;
+                        border: 2px solid #000 !important;
+                    }
+                }
+                
+                @media (max-width: 640px) {
+                    .receipt-container {
+                        width: 95% !important;
+                        margin: 10px !important;
+                        padding: 20px !important;
+                    }
+                }
             </style>
         </head>
-        <body>
-            <div class="receipt">
-                <h1>REÇU DE PAIEMENT</h1>
-                <div class="school-name">${ecoleName}</div>
-                <div style="text-align:center; margin-bottom:20px;">${dateStr}</div>
-                
-                <div class="row">
-                    <span>Élève:</span>
-                    <strong>${row.prenom} ${row.nom}</strong>
-                </div>
-                <div class="row">
-                    <span>Classe:</span>
-                    <span>${row.classes.nom}</span>
-                </div>
-                <div class="row">
-                    <span>Mois:</span>
-                    <span>${mois}</span>
+        <body class="bg-gray-100 p-4">
+            <div class="receipt-container bg-white border-2 border-gray-800 rounded-lg p-8 max-w-2xl mx-auto shadow-lg">
+                <!-- En-tête avec logo et nom de l'école -->
+                <div class="flex items-center justify-center mb-6">
+                    <div class="w-16 h-16 border-2 border-gray-400 rounded-lg flex items-center justify-center mr-4">
+                        <span class="text-gray-500 text-xs">LOGO</span>
+                    </div>
+                    <div class="text-center">
+                        <h1 class="text-2xl font-bold uppercase tracking-wide">GTS TRIOS SCIENTIFIQUES</h1>
+                    </div>
                 </div>
                 
-                <div class="total row">
-                    <span>MONTANT PAYÉ:</span>
-                    <span>${montant} FCFA</span>
+                <!-- Titre du reçu et numéro -->
+                <div class="text-center mb-6">
+                    <h2 class="text-xl font-bold uppercase mb-2">Reçu de Paiement</h2>
+                    <p class="text-gray-600 font-mono">${receiptNumber}</p>
                 </div>
-
-                <div class="footer">
-                    <p>Merci pour votre paiement.</p>
-                    <p>Cachet de l'école</p>
+                
+                <!-- Date -->
+                <div class="text-center mb-6">
+                    <p class="text-gray-700">Date: ${dateStr}</p>
+                </div>
+                
+                <!-- Tableau des informations -->
+                <div class="mb-6">
+                    <table class="w-full border-collapse">
+                        <tr class="border-b border-gray-300">
+                            <td class="py-3 font-semibold">Désignation</td>
+                            <td class="py-3 text-right">Frais de scolarité - ${mois}</td>
+                        </tr>
+                        <tr class="border-b border-gray-300">
+                            <td class="py-3 font-semibold">Élève</td>
+                            <td class="py-3 text-right">${row.prenom} ${row.nom}</td>
+                        </tr>
+                        <tr class="border-b border-gray-300">
+                            <td class="py-3 font-semibold">Classe</td>
+                            <td class="py-3 text-right">${row.classes.nom}</td>
+                        </tr>
+                        <tr class="border-b border-gray-300">
+                            <td class="py-3 font-semibold">Montant</td>
+                            <td class="py-3 text-right">${montant} FCFA</td>
+                        </tr>
+                        <tr class="border-t-2 border-gray-800 font-bold">
+                            <td class="py-3 text-lg">TOTAL PAYÉ</td>
+                            <td class="py-3 text-right text-lg">${montant} FCFA</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Mentions légales et signature -->
+                <div class="mt-8">
+                    <p class="text-sm text-gray-600 mb-6 text-center italic">
+                        Ce reçu tient lieu de preuve de paiement.
+                    </p>
+                    
+                    <div class="flex justify-end">
+                        <div class="text-center">
+                            <div class="w-32 h-16 border-2 border-dashed border-gray-400 rounded mb-2 flex items-center justify-center">
+                                <span class="text-gray-400 text-xs">Cachet</span>
+                            </div>
+                            <p class="text-sm font-semibold">Cachet et Signature<br>de la Direction</p>
+                        </div>
+                    </div>
                 </div>
             </div>
+            
+            <!-- Boutons d'action -->
+            <div class="flex justify-center gap-4 mt-6 no-print">
+                <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+                    🖨️ Imprimer
+                </button>
+                <button onclick="window.close()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+                    ✕ Fermer
+                </button>
+            </div>
+            
             <script>
-                window.print();
-                // window.close(); // Optional
+                // Auto-impression après le chargement
+                window.addEventListener('load', function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 500);
+                });
             </script>
         </body>
         </html>

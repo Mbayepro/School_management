@@ -13,115 +13,266 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <style>
+    /* Carte d'étudiant améliorée */
     .id-card-preview {
         width: 85.6mm;
         height: 54mm;
         border: 1px solid #ccc;
-        border-radius: 8px;
-        padding: 15px;
+        border-radius: 12px;
+        padding: 12px;
         background: white;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         margin: 0 auto 20px auto;
-        display: flex;
-        font-family: 'Segoe UI', sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         color: #333;
-        background-image: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        display: flex;
+        flex-direction: column;
     }
+
+    /* Header avec logo et info école */
+    .id-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .id-card-logo-container {
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+
+    .id-card-logo-placeholder {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: #64748b;
+        background: #f1f5f9;
+    }
+
+    .id-card-school-info {
+        flex: 1;
+    }
+
+    .id-card-school {
+        font-size: 14px;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 2px;
+        letter-spacing: 0.3px;
+    }
+
+    .id-card-subtitle {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    /* Contenu principal */
+    .id-card-content {
+        display: flex;
+        flex: 1;
+        gap: 12px;
+    }
+
     .id-card-left {
         flex: 0 0 35%;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        border-right: 2px solid #e2e8f0;
-        padding-right: 15px;
     }
+
     .id-card-photo {
-        width: 100px;
-        height: 100px;
+        width: 85px;
+        height: 95px;
         background: #e2e8f0;
-        border-radius: 8px; /* Rectangulaire arrondi pour mieux voir la photo */
+        border-radius: 8px;
         object-fit: cover;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         border: 2px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
+
+    .id-card-qr {
+        width: 55px;
+        height: 55px;
+        opacity: 0.95;
+        align-self: center;
+    }
+
     .id-card-right {
         flex: 1;
-        padding-left: 20px;
         display: flex;
         flex-direction: column;
         justify-content: center;
+        padding-left: 5px;
     }
-    .id-card-school {
-        font-size: 12px;
-        text-transform: uppercase;
-        color: #64748b;
-        margin-bottom: 8px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-    }
+
     .id-card-name {
-        font-size: 18px;
-        font-weight: 800;
-        margin-bottom: 5px;
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 8px;
         color: #1e293b;
         line-height: 1.2;
     }
+
     .id-card-info {
-        font-size: 13px;
+        font-size: 12px;
         margin-bottom: 4px;
         color: #475569;
     }
+
     .id-card-info strong {
         color: #334155;
+        font-weight: 600;
     }
-    .id-card-qr {
-        width: 40px;
-        height: 40px;
-        opacity: 0.95;
-        margin-top: 8px;
-        align-self: center;
+
+    /* Footer */
+    .id-card-footer {
+        margin-top: auto;
+        padding-top: 8px;
+        border-top: 1px solid #e2e8f0;
+        text-align: center;
     }
+
+    .id-card-year {
+        font-size: 10px;
+        color: #64748b;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+
+    /* Mode impression professionnel */
     @media print {
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
         body * {
-            visibility: hidden;
+            visibility: hidden !important;
         }
-        #idCardModal, #idCardModal * {
-            visibility: visible;
-        }
+
         #idCardModal {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: white !important;
+            display: block !important;
+            z-index: 9999 !important;
+            visibility: visible !important;
         }
+
+        #idCardModal * {
+            visibility: visible !important;
+        }
+
         .modal-content {
-            box-shadow: none;
-            border: none;
-            width: 100%;
-            max-width: none;
-            position: static;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            box-shadow: none !important;
+            border: none !important;
+            width: 100% !important;
+            max-width: none !important;
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
         }
-        .close, .modal-actions, h2, label, #photoUpload {
-            display: none !important;
+
+        /* Grille pour 8 cartes par page A4 (2x4) */
+        .id-cards-print-container {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            grid-template-rows: repeat(4, 1fr) !important;
+            gap: 15mm !important;
+            width: 100% !important;
+            height: 100% !important;
+            padding: 10mm !important;
+            box-sizing: border-box !important;
         }
+
+        .id-card-print-item {
+            position: relative !important;
+            width: 85.6mm !important;
+            height: 54mm !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+
         .id-card-preview {
-            border: 1px solid #ccc;
-            box-shadow: none;
-            margin: 0;
-            transform: scale(1); /* Ensure correct size */
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+            transform: none !important;
+            background: white !important;
+        }
+
+        /* Traits de coupe */
+        .id-card-print-item::before,
+        .id-card-print-item::after {
+            content: '' !important;
+            position: absolute !important;
+            width: 2mm !important;
+            height: 2mm !important;
+            border: 1px solid #999 !important;
+            z-index: 1000 !important;
+        }
+
+        .id-card-print-item::before {
+            top: -1mm !important;
+            left: -1mm !important;
+            border-right: none !important;
+            border-bottom: none !important;
+        }
+
+        .id-card-print-item::after {
+            top: -1mm !important;
+            right: -1mm !important;
+            border-left: none !important;
+            border-bottom: none !important;
+        }
+
+        .id-card-print-item .cut-mark-bottom-left::before {
+            content: '' !important;
+            position: absolute !important;
+            bottom: -1mm !important;
+            left: -1mm !important;
+            width: 2mm !important;
+            height: 2mm !important;
+            border: 1px solid #999 !important;
+            border-top: none !important;
+            border-right: none !important;
+        }
+
+        .id-card-print-item .cut-mark-bottom-right::after {
+            content: '' !important;
+            position: absolute !important;
+            bottom: -1mm !important;
+            right: -1mm !important;
+            width: 2mm !important;
+            height: 2mm !important;
+            border: 1px solid #999 !important;
+            border-top: none !important;
+            border-left: none !important;
+        }
+
+        /* Masquer les éléments non essentiels */
+        .close, .modal-actions, h2, label, #photoUpload,
+        .modal-content > *:not(.id-cards-print-container) {
+            display: none !important;
         }
     }
   </style>
@@ -247,6 +398,7 @@
 
     <div class="modal-actions" style="text-align: center;">
         <button id="printIdCardBtn" class="btn primary">Imprimer</button>
+        <button id="printMultipleIdCardsBtn" class="btn primary">Impression Pro (8 cartes)</button>
         <button id="closeIdCardBtn" class="btn ghost">Fermer</button>
     </div>
   </div>

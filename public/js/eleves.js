@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeIdCardModal = document.getElementById('closeIdCardModal');
   const closeIdCardBtn = document.getElementById('closeIdCardBtn');
   const printIdCardBtn = document.getElementById('printIdCardBtn');
+  const printMultipleIdCardsBtn = document.getElementById('printMultipleIdCardsBtn');
   const photoUpload = document.getElementById('photoUpload');
   const sumTotalEleves = document.getElementById('sumTotalEleves');
   const sumActifs = document.getElementById('sumActifs');
@@ -143,6 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (closeIdCardModal) closeIdCardModal.addEventListener('click', () => { idCardModal.classList.add('hidden'); selectedEleve = null; });
   if (closeIdCardBtn) closeIdCardBtn.addEventListener('click', () => { idCardModal.classList.add('hidden'); selectedEleve = null; });
   if (printIdCardBtn) printIdCardBtn.addEventListener('click', () => window.print());
+  if (printMultipleIdCardsBtn) printMultipleIdCardsBtn.addEventListener('click', printMultipleIdCards);
   window.addEventListener('click', (e) => { if (e.target === idCardModal) { idCardModal.classList.add('hidden'); selectedEleve = null; } });
   if (photoUpload) {
     photoUpload.addEventListener('change', async (e) => {
@@ -308,67 +310,174 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectedEleve = eleve;
     if (!idCardModal || !idCardPreview) return;
     const classeNom = classesById.get(eleve.classe_id)?.nom || 'N/A';
+    const matricule = 'GTS-' + (eleve.id || '').toString().substring(0, 6);
+    
     idCardPreview.innerHTML = `
-      <div class="id-card-left">
-        <img class="id-card-photo" alt="Photo élève">
-        <div class="id-card-qr" id="idCardQR"></div>
+      <div class="id-card-header">
+        <div class="id-card-logo-container">
+          <div class="id-card-logo-placeholder">Logo</div>
+        </div>
+        <div class="id-card-school-info">
+          <div class="id-card-school">GTS TRIOS SCIENTIFIQUES</div>
+          <div class="id-card-subtitle">${ecoleName}</div>
+        </div>
       </div>
-      <div class="id-card-right">
-        <div class="id-card-school">${ecoleName}</div>
-        <div class="id-card-name">${eleve.prenom || ''} ${eleve.nom || ''}</div>
-        <div class="id-card-info"><strong>Classe:</strong> ${classeNom}</div>
-        <div class="id-card-info"><strong>ID:</strong> ${eleve.id}</div>
+      <div class="id-card-content">
+        <div class="id-card-left">
+          <img class="id-card-photo" alt="Photo élève">
+          <div class="id-card-qr" id="idCardQR"></div>
+        </div>
+        <div class="id-card-right">
+          <div class="id-card-name">${eleve.prenom || ''} ${eleve.nom || ''}</div>
+          <div class="id-card-info"><strong>Matricule:</strong> ${matricule}</div>
+          <div class="id-card-info"><strong>Classe:</strong> ${classeNom}</div>
+        </div>
+      </div>
+      <div class="id-card-footer">
+        <div class="id-card-year">Année Scolaire : 2025-2026</div>
       </div>
     `;
     try {
       const qrEl = idCardPreview.querySelector('#idCardQR');
       if (qrEl && window.QRCode) {
-        new QRCode(qrEl, { text: String(eleve.id), width: 40, height: 40 });
+        new QRCode(qrEl, { 
+          text: String(eleve.id), 
+          width: 60, 
+          height: 60,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
       }
     } catch (_) {}
     idCardModal.classList.remove('hidden');
   }
 
-  function openEditModal(eleve) {
-    populateClasseSelect();
-    if (formMessage) { formMessage.textContent = ""; formMessage.style.display = "none"; }
-    if (modalTitle) modalTitle.textContent = "Modifier un élève";
-    if (saveEleveBtn) saveEleveBtn.textContent = "Mettre à jour";
-    if (eleveIdInput) eleveIdInput.value = String(eleve.id);
-    if (nomInput) nomInput.value = eleve.nom || '';
-    if (prenomInput) prenomInput.value = eleve.prenom || '';
-    if (classeSelectEl) classeSelectEl.value = String(eleve.classe_id || '');
-    if (parentTelInput) parentTelInput.value = eleve.tel_parent || '';
-    eleveModal.classList.remove('hidden');
+  function printMultipleIdCards() {
+    const elevesToPrint = getFilteredEleves();
+
+    if (elevesToPrint.length === 0) {
+      alert("Aucun élève à imprimer avec les filtres actuels.");
+      return;
+    }
+
+    const printContainer = document.createElement('div');
+    printContainer.className = 'id-cards-print-container';
+    
+    elevesToPrint.slice(0, 8).forEach((eleve, index) => {
+      const cardItem = document.createElement('div');
+      cardItem.className = 'id-card-print-item';
+      
+      const card = document.createElement('div');
+      card.className = 'id-card-preview';
+      
+      const classeNom = classesById.get(eleve.classe_id)?.nom || 'N/A';
+      const matricule = 'GTS-' + (eleve.id || '').toString().substring(0, 6);
+      
+      card.innerHTML = `
+        <div class="id-card-header">
+          <div class="id-card-logo-container">
+            <div class="id-card-logo-placeholder">Logo</div>
+          </div>
+          <div class="id-card-school-info">
+            <div class="id-card-school">GTS TRIOS SCIENTIFIQUES</div>
+            <div class="id-card-subtitle">${ecoleName}</div>
+          </div>
+        </div>
+        <div class="id-card-content">
+          <div class="id-card-left">
+            <img class="id-card-photo" alt="Photo élève">
+            <div class="id-card-qr" id="printQR${index}"></div>
+          </div>
+          <div class="id-card-right">
+            <div class="id-card-name">${eleve.prenom || ''} ${eleve.nom || ''}</div>
+            <div class="id-card-info"><strong>Matricule:</strong> ${matricule}</div>
+            <div class="id-card-info"><strong>Classe:</strong> ${classeNom}</div>
+          </div>
+        </div>
+        <div class="id-card-footer">
+          <div class="id-card-year">Année Scolaire : 2025-2026</div>
+        </div>
+      `;
+      
+      cardItem.appendChild(card);
+      printContainer.appendChild(cardItem);
+      
+      setTimeout(() => {
+        const qrEl = cardItem.querySelector(`#printQR${index}`);
+        if (qrEl && window.QRCode) {
+          new QRCode(qrEl, { 
+            text: String(eleve.id), 
+            width: 55, 
+            height: 55,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+      }, 50);
+    });
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write('<html><head><title>Impression des cartes d\\'étudiants</title>');
+    printWindow.document.write('<link rel="stylesheet" href="css/style.css">');
+    printWindow.document.write('<link rel="stylesheet" href="css/dashboard-directeur.css">');
+    printWindow.document.write('<style>@media print { @page { size: A4; margin: 10mm; } body { background: white !important; } .id-cards-print-container { display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 15mm; } .id-card-print-item { position: relative; page-break-inside: avoid; } }</style>');
+    printWindow.document.write('</head><body></body></html>');
+    printWindow.document.close();
+    printWindow.document.body.appendChild(printContainer);
+    
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
   }
 
-  async function updateFilteredMetrics(classeId, niveau) {
-    let totalCount = 0;
-    let desactivesCount = 0;
+  function getFilteredEleves() {
+    const filterNiveau = document.getElementById('filterNiveau')?.value || '';
+    const filterClasse = document.getElementById('filterClasse')?.value || '';
+    const searchTerm = document.getElementById('searchEleve')?.value.toLowerCase() || '';
+    
+    let allEleves = [];
+    elevesByClass.forEach(eleves => {
+      allEleves = allEleves.concat(eleves);
+    });
+    
+    return allEleves.filter(eleve => {
+      const classe = classesById.get(eleve.classe_id);
+      const matchesNiveau = !filterNiveau || (classe && classe.niveau === filterNiveau);
+      const matchesClasse = !filterClasse || eleve.classe_id === filterClasse;
+      const matchesSearch = !searchTerm || (eleve.nom.toLowerCase().includes(searchTerm) || eleve.prenom.toLowerCase().includes(searchTerm));
+      return matchesNiveau && matchesClasse && matchesSearch;
+    });
+  }
+
+  function updateFilteredMetrics(classeId, niveau) {
+    let count = 0;
     if (classeId) {
-      const totalRes = await supabase.from('eleves').select('id', { count: 'exact', head: true }).eq('classe_id', classeId);
-      const desRes = await supabase.from('eleves').select('id', { count: 'exact', head: true }).eq('classe_id', classeId).eq('actif', false);
-      totalCount = totalRes.count ?? 0;
-      desactivesCount = desRes.count ?? 0;
+      count = (elevesByClass.get(classeId) || []).length;
     } else if (niveau) {
-      const ids = Array.from(classesById.values()).filter(c => (c.niveau || '') === niveau).map(c => c.id);
-      if (ids.length > 0) {
-        const totalRes = await supabase.from('eleves').select('id', { count: 'exact', head: true }).in('classe_id', ids);
-        const desRes = await supabase.from('eleves').select('id', { count: 'exact', head: true }).in('classe_id', ids).eq('actif', false);
-        totalCount = totalRes.count ?? 0;
-        desactivesCount = desRes.count ?? 0;
-      } else {
-        totalCount = 0;
-        desactivesCount = 0;
-      }
+      count = Array.from(elevesByClass.entries())
+        .filter(([cid, _]) => (classesById.get(cid)?.niveau || '') === niveau)
+        .reduce((acc, [_, list]) => acc + list.length, 0);
     } else {
-      const ids = Array.from(classesById.keys());
-      const totalRes = await supabase.from('eleves').select('id', { count: 'exact', head: true }).in('classe_id', ids);
-      const desRes = await supabase.from('eleves').select('id', { count: 'exact', head: true }).in('classe_id', ids).eq('actif', false);
-      totalCount = totalRes.count ?? 0;
-      desactivesCount = desRes.count ?? 0;
+      count = Array.from(elevesByClass.values()).flat().length;
     }
-    if (sumTotalEleves) sumTotalEleves.textContent = String(totalCount);
-    if (sumDesactives) sumDesactives.textContent = String(desactivesCount);
+    if (sumActifs) sumActifs.textContent = String(count);
+  }
+
+  function openEditModal(eleve) {
+    if (!eleveModal) return;
+    populateClasseSelect();
+    if (formMessage) { formMessage.textContent = ""; formMessage.style.display = "none"; }
+    if (eleveForm) eleveForm.reset();
+    if (eleveIdInput) eleveIdInput.value = eleve.id;
+    if (modalTitle) modalTitle.textContent = "Modifier l'élève";
+    if (saveEleveBtn) saveEleveBtn.textContent = "Mettre à jour";
+    if (nomInput) nomInput.value = eleve.nom || '';
+    if (prenomInput) prenomInput.value = eleve.prenom || '';
+    if (classeSelectEl) classeSelectEl.value = eleve.classe_id || '';
+    if (parentTelInput) parentTelInput.value = eleve.tel_parent || '';
+    eleveModal.classList.remove('hidden');
   }
 });
