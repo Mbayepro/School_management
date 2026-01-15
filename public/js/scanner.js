@@ -70,7 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof Html5Qrcode !== 'undefined') {
             try {
                 const devices = await Html5Qrcode.getCameras();
-                const cameraId = devices && devices.length ? devices[0].id : { facingMode: "environment" };
+                const backCam = (devices || []).find(d => /back|rear|environment/i.test(d.label)) || (devices || [])[devices?.length - 1];
+                const cameraId = backCam ? backCam.id : { facingMode: { exact: "environment" } };
                 html5Qrcode = new Html5Qrcode("reader");
                 await html5Qrcode.start(
                     cameraId,
@@ -152,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
             stream.getTracks().forEach(t => t.stop());
             return true;
         } catch (err) {

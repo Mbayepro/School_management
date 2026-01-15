@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sumDesactives = document.getElementById('sumDesactives');
   const exportExcelBtn = document.getElementById('exportExcelBtn');
   const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
   const addEleveBtn = document.getElementById('addEleveBtn');
   const eleveModal = document.getElementById('eleveModal');
   const closeModal = document.getElementById('closeModal');
@@ -142,8 +144,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (closeIdCardModal) closeIdCardModal.addEventListener('click', () => { idCardModal.classList.add('hidden'); selectedEleve = null; });
   if (closeIdCardBtn) closeIdCardBtn.addEventListener('click', () => { idCardModal.classList.add('hidden'); selectedEleve = null; });
-  if (printIdCardBtn) printIdCardBtn.addEventListener('click', () => {
+  function waitForImages(container) {
+    const imgs = Array.from(container.querySelectorAll('img'));
+    return Promise.all(imgs.map(img => new Promise(res => {
+      if (img.complete && img.naturalWidth > 0) res();
+      else {
+        img.addEventListener('load', res, { once: true });
+        img.addEventListener('error', res, { once: true });
+      }
+    })));
+  }
+  if (printIdCardBtn) printIdCardBtn.addEventListener('click', async () => {
       document.body.classList.add('printing-single');
+      if (idCardPreview) await waitForImages(idCardPreview);
       window.print();
       document.body.classList.remove('printing-single');
   });
@@ -151,6 +164,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const printSelectedBtn = document.getElementById('printSelectedBtn');
   const printableContainer = document.getElementById('printableCardsContainer');
 
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', () => {
+      document.querySelectorAll('.eleve-check').forEach(cb => { cb.checked = true; });
+      updatePrintButtonCount();
+    });
+  }
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', () => {
+      document.querySelectorAll('.eleve-check').forEach(cb => { cb.checked = false; });
+      updatePrintButtonCount();
+    });
+  }
   if (printSelectedBtn) {
       printSelectedBtn.addEventListener('click', async () => {
         const checkboxes = document.querySelectorAll('.eleve-check:checked');
@@ -163,7 +188,11 @@ document.addEventListener('DOMContentLoaded', async () => {
              const card = await generateCardHtml(eleveData);
              printableContainer.appendChild(card);
         }
-        printableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        await new Promise(res => setTimeout(res, 300));
+        await waitForImages(printableContainer);
+        document.body.classList.add('printing-grid');
+        window.print();
+        document.body.classList.remove('printing-grid');
       });
   }
 
@@ -301,6 +330,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!printSelectedBtn) return;
     const count = document.querySelectorAll('.eleve-check:checked').length;
     printSelectedBtn.textContent = `🖨️ Cartes (${count})`;
+    printSelectedBtn.disabled = count === 0;
   }
 
   function getFilteredRows(classeId, niveau, q) {
