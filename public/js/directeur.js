@@ -133,12 +133,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Fetch all data in parallel
   const [
     { count: classesCount, error: classesErr },
-    { count: elevesCount, error: elevesErr },
+    { data: elevesData, error: elevesErr },
     { data: presencesToday, error: presErr },
     { data: impayesMonth, error: impErr }
   ] = await Promise.all([
     supabase.from('classes').select('id', { count: 'exact', head: true }).eq('ecole_id', ecoleId),
-    supabase.from('eleves').select('id', { count: 'exact', head: true }).eq('actif', true).eq('classes.ecole_id', ecoleId), 
+    supabase
+      .from('eleves')
+      .select('id, classes!inner(ecole_id)')
+      .eq('actif', true)
+      .eq('classes.ecole_id', ecoleId),
     supabase
       .from('presences')
       .select('statut, eleves!inner(classes!inner(ecole_id))')
@@ -161,15 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Fix for Eleves count if deep filter failed in head only mode
   // The previous code did: select('id, classes!inner(ecole_id)').eq...
   // Let's stick to a robust query for eleves count.
-  let finalElevesCount = elevesCount;
-  if (elevesErr) {
-     const { data: elevesData } = await supabase
-      .from('eleves')
-      .select('id, classes!inner(ecole_id)')
-      .eq('classes.ecole_id', ecoleId)
-      .eq('actif', true);
-     finalElevesCount = elevesData ? elevesData.length : 0;
-  }
+  const finalElevesCount = (!elevesErr && elevesData) ? elevesData.length : 0;
 
   // Update DOM
   if (valClasses) valClasses.textContent = classesErr ? '-' : classesCount;

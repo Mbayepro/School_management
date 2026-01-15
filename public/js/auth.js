@@ -96,6 +96,7 @@ export function setupLoginForm() {
   const btn = document.getElementById("login-btn");
   const emailEl = document.getElementById("email");
   const passwordEl = document.getElementById("password");
+  let isSubmitting = false;
   const errorEl = document.getElementById("error-message");
   const forgotLink = document.getElementById("forgot-link");
   const forgotSection = document.getElementById("forgot-section");
@@ -112,6 +113,8 @@ export function setupLoginForm() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    isSubmitting = true;
     if (errorEl) {
       errorEl.textContent = "";
       errorEl.style.display = "none";
@@ -130,6 +133,7 @@ export function setupLoginForm() {
     } finally {
       btn.disabled = false;
       btn.textContent = prev;
+      isSubmitting = false;
     }
   });
 

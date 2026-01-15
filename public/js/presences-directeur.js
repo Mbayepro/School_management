@@ -1,4 +1,3 @@
-console.log('presences-directeur.js chargé');
 
 import { supabase, db } from './supabaseClient.js';
 

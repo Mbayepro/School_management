@@ -73,7 +73,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     "eleves.html": ["directeur", "director"],
     "paiements.html": ["directeur", "director"],
     "dashboard-professeur.html": ["professeur", "teacher"],
-    "presences.html": ["professeur", "teacher"]
+    "presences.html": ["professeur", "teacher"],
+    "notes.html": ["professeur", "teacher", "directeur", "director"]
   };
 
   const allowedRoles = permissions[page];

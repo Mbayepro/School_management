@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const emailEl = document.getElementById("email");
   const passwordEl = document.getElementById("password");
   const confirmPasswordEl = document.getElementById("confirm-password");
+  const ecoleNameEl = document.getElementById("ecoleName");
   const errorEl = document.getElementById("error-message");
   const successEl = document.getElementById("success-message");
 
@@ -24,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = emailEl.value.trim();
     const password = passwordEl.value;
     const confirmPassword = confirmPasswordEl.value;
+    const ecoleNom = ecoleNameEl ? ecoleNameEl.value.trim() : "Nouvelle École";
 
     // Validation simple
     if (password !== confirmPassword) {
@@ -36,25 +38,32 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
+    if (!ecoleNom) {
+        showError("Le nom de l'école est requis.");
+        return;
+    }
+
     // Désactiver le bouton
     btn.disabled = true;
     const prevText = btn.textContent;
     btn.textContent = "Création en cours...";
 
     try {
+      // 1. Inscription Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
             data: {
-                role: 'directeur' // Métadonnée utile pour les triggers éventuels
+                role: 'directeur' // Métadonnée utile
             }
         }
       });
 
       if (authError) {
-        // Fallback si erreur 500 côté Supabase
+        // Fallback si erreur 500 (parfois arrive en local/dev)
         if (authError.status === 500) {
+           // On tente une inscription simple sans metadata si l'autre échoue
           const { data: fbData, error: fbErr } = await supabase.auth.signUp({ email, password });
           if (!fbErr) {
             form.style.display = "none";
@@ -66,18 +75,42 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const userId = authData.user?.id || null;
+      
+      // Si l'utilisateur existe déjà (authData.user est null si confirmation email requise, 
+      // mais ici on assume que ça renvoie l'user ou on gère le cas)
       if (userId) {
+        // 2. Créer l'école
+        const { data: ecoleData, error: ecoleError } = await supabase
+            .from('ecoles')
+            .insert([{ nom: ecoleNom, active: false }]) 
+            .select()
+            .single();
+
+        if (ecoleError) {
+             console.error("Erreur création école:", ecoleError);
+             throw new Error("Erreur lors de la création de l'école.");
+        }
+
+        const ecoleId = ecoleData ? ecoleData.id : null;
+
+        // 3. Créer le profil lié à l'école
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
               { 
                   id: userId, 
                   email: email, 
+                  role: 'directeur',
+                  ecole_id: ecoleId,
                   active: false 
               }
           ]);
-        if (profileError && profileError.code !== '23505') {
-          console.warn("Info profil:", profileError);
+        
+        if (profileError) {
+             // Ignorer erreur de duplication si l'utilisateur a cliqué deux fois vite
+             if (profileError.code !== '23505') {
+                 console.error("Erreur création profil:", profileError);
+             }
         }
       }
 
@@ -85,6 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
       successEl.classList.remove("hidden");
 
     } catch (err) {
+      console.error(err);
       showError(err.message || "Une erreur est survenue lors de l'inscription.");
     } finally {
       btn.disabled = false;

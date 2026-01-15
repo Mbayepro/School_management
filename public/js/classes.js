@@ -161,7 +161,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  await loadClasses();
+  if (classesGrid) {
+    await loadClasses();
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -205,6 +207,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     form.reset();
+    classeMessage.textContent = 'Classe créée avec succès.';
+    classeMessage.style.display = 'block';
+    classeMessage.style.color = '#10b981';
     await loadClasses();
     // Optional: Toast notification could go here
   });
@@ -216,16 +221,18 @@ function showError(msg) {
 }
 
 async function loadClasses() {
+  if (!classesGrid) return;
   classesGrid.innerHTML = '<div class="muted" style="grid-column: 1/-1; text-align: center;">Chargement...</div>';
   
   const { data, error } = await db.getClassesByEcole(ecoleId);
   if (error) {
-    classesGrid.innerHTML = '<div class="error">Erreur de chargement.</div>';
+    if (classesGrid) classesGrid.innerHTML = '<div class="error">Erreur de chargement.</div>';
     return;
   }
   // Note: La liste des professeurs n'est pas chargée ici à cause des RLS sur profiles.
   // On propose l'assignation par email via RPC pour contourner proprement.
   
+  if (!classesGrid) return;
   classesGrid.innerHTML = '';
   
   const count = data ? data.length : 0;

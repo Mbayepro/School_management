@@ -7,7 +7,9 @@
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="css/dashboard-directeur.css"/>
-  <link rel="stylesheet" href="css/style.css"/> 
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/scanner.css"/>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script> 
 </head>
 <body>
 
@@ -18,6 +20,7 @@
     <span class="role">Direction</span>
   </div>
   <div class="top-actions" style="display:flex; gap:8px; align-items:center;">
+    <button id="scannerBtn" class="btn primary" style="background-color: #4f46e5;">📷 Scanner</button>
     <button id="addProfBtn" class="btn primary">Ajouter Professeur</button>
     <button id="changePwdOpen" class="btn ghost">Changer le mot de passe</button>
     <button id="logoutBtn" class="btn danger">
@@ -90,6 +93,18 @@
   <!-- ACTION CARDS GRID -->
   <div class="cards-grid fade-in-up" style="animation-delay: 0.2s;">
     
+    <!-- CARD: SCANNER (New) -->
+    <div id="scannerCardBtn" class="card-action" style="cursor: pointer;">
+      <div class="card-icon-bg" style="background: #e0e7ff; color: #4f46e5;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><path d="M3 14h7v7H3z"></path></svg>
+      </div>
+      <div class="card-text">
+        <h3>Scanner QR</h3>
+        <p>Vérifier le statut d'un élève.</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </div>
+
     <!-- CARD: PRÉSENCES -->
     <a href="presences-directeur.html" class="card-action">
       <div class="card-icon-bg blue">
@@ -177,6 +192,20 @@
     </div>
   </div>
 
+  <div id="scannerModal" class="scanner-modal-overlay">
+    <div class="scanner-modal">
+      <header class="scanner-header">
+        <h3>Scanner QR Code</h3>
+        <button id="closeScannerBtn" class="scanner-close">&times;</button>
+      </header>
+      <div class="scanner-body">
+        <div id="reader"></div> <!-- Zone caméra -->
+        <div id="scanResult" class="scan-result"></div> <!-- Résultat Vert/Rouge -->
+      </div>
+    </div>
+  </div>
+
+<script type="module" src="js/scanner.js"></script>
 <script type="module" src="js/role-guard.js"></script>
 <script type="module" src="js/auth.js"></script>
 <script type="module" src="js/directeur.js"></script>
