@@ -66,22 +66,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasAccess = await ensureCameraAccess();
         if (!hasAccess) return;
 
-        // Prefer direct Html5Qrcode start with back camera
+        // Prefer direct Html5Qrcode start with explicit back camera constraint
         if (typeof Html5Qrcode !== 'undefined') {
             try {
-                const devices = await Html5Qrcode.getCameras();
-                const backCam = (devices || []).find(d => /back|rear|environment/i.test(d.label)) || (devices || [])[devices?.length - 1];
-                const cameraId = backCam ? backCam.id : { facingMode: { exact: "environment" } };
                 html5Qrcode = new Html5Qrcode("reader");
                 await html5Qrcode.start(
-                    cameraId,
+                    { facingMode: "environment" },
                     { fps: 10, qrbox: { width: 250, height: 250 } },
                     onScanSuccess,
                     onScanFailure
                 );
                 return;
             } catch (err) {
-                console.error("Html5Qrcode start failed, fallback to scanner:", err);
+                try {
+                    const devices = await Html5Qrcode.getCameras();
+                    const backCam = (devices || []).find(d => /back|rear|environment/i.test(d.label)) || (devices || [])[devices?.length - 1];
+                    const cameraId = backCam ? backCam.id : undefined;
+                    if (cameraId) {
+                        await html5Qrcode.start(
+                            cameraId,
+                            { fps: 10, qrbox: { width: 250, height: 250 } },
+                            onScanSuccess,
+                            onScanFailure
+                        );
+                        return;
+                    }
+                } catch (_) {}
                 try {
                     if (typeof Html5QrcodeScanner !== 'undefined') {
                         html5QrcodeScanner = new Html5QrcodeScanner(
@@ -92,9 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
                         return;
                     }
-                } catch (e) {
-                    console.error("Scanner fallback failed:", e);
-                }
+                } catch (_) {}
             }
         }
 
@@ -153,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             stream.getTracks().forEach(t => t.stop());
             return true;
         } catch (err) {

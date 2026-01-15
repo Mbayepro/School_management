@@ -157,8 +157,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (printIdCardBtn) printIdCardBtn.addEventListener('click', async () => {
       document.body.classList.add('printing-single');
       if (idCardPreview) await waitForImages(idCardPreview);
-      window.print();
-      document.body.classList.remove('printing-single');
+      setTimeout(() => {
+        window.print();
+        document.body.classList.remove('printing-single');
+      }, 150);
   });
   
   const printSelectedBtn = document.getElementById('printSelectedBtn');

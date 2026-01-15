@@ -168,12 +168,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         // For now, let's fetch all subjects for the school and assume they apply, 
         // or strictly those with classe_id = current or null?
         // Based on schema, matieres has classe_id.
-        const { data: matieres } = await supabase
+        let { data: matieres } = await supabase
             .from('matieres')
             .select('id, nom')
             .eq('ecole_id', ecoleId)
             .or(`classe_id.eq.${classeId},classe_id.is.null`)
             .order('nom');
+        if (!matieres || matieres.length === 0) {
+            const { data: created } = await supabase
+                .from('matieres')
+                .insert([{ nom: 'Général', ecole_id: ecoleId, classe_id: classeId }])
+                .select();
+            matieres = created || [];
+        }
 
         selectMatiere.innerHTML = '<option value="">-- Choisir une matière --</option>';
         matieres?.forEach(m => {
