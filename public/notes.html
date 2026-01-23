@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Saisie des Notes – School Management</title>
   <meta name="theme-color" content="#2563eb" />
-  <link rel="stylesheet" href="css/dashboard-directeur.css"/>
-  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/dashboard-directeur.css?v=v2"/>
+  <link rel="stylesheet" href="css/style.css?v=v2"/>
+  <script src="js/kill-sw.js"></script>
   <style>
     .notes-table {
         width: 100%;
@@ -92,7 +93,7 @@
             <select id="selectEvaluation" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;" disabled>
                 <option value="">Sélectionner une matière d'abord</option>
             </select>
-            <button id="newEvalBtn" class="btn btn-sm primary" style="white-space:nowrap;" disabled>+</button>
+            <button id="newEvalBtn" class="btn btn-sm primary" style="white-space:nowrap; cursor:pointer; flex-shrink:0;" disabled>+</button>
         </div>
       </label>
     </div>
@@ -142,6 +143,21 @@
             
             <div style="display:flex; gap:12px; margin-bottom:12px;">
                 <label style="flex:1;">
+                    Classe
+                    <select id="evalClasse" required style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:6px;">
+                        <option value="">-- Choisir --</option>
+                    </select>
+                </label>
+                <label style="flex:1;">
+                    Matière
+                    <select id="evalMatiere" required style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:6px;">
+                        <option value="">-- Choisir --</option>
+                    </select>
+                </label>
+            </div>
+
+            <div style="display:flex; gap:12px; margin-bottom:12px;">
+                <label style="flex:1;">
                     Type
                     <select id="evalType" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:6px;">
                         <option value="Devoir">Devoir</option>
@@ -169,8 +185,8 @@
     </div>
 </div>
 
-<script type="module" src="js/role-guard.js"></script>
-<script type="module" src="js/auth.js"></script>
-<script type="module" src="js/notes.js"></script>
+<script type="module" src="js/role-guard.js?v=v3"></script>
+<script type="module" src="js/auth.js?v=v3"></script>
+<script type="module" src="js/notes.js?v=v3"></script>
 </body>
 </html>

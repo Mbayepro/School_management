@@ -205,7 +205,10 @@ window.printReceipt = function(eleveId) {
     const mois = document.getElementById('monthFilter').value;
 
     const win = window.open('', 'Reçu', 'width=600,height=400');
-    win.document.write(`
+
+    // Create document content without document.write to avoid Trusted Types issues
+    const htmlContent = `
+        <!DOCTYPE html>
         <html>
         <head>
             <title>Reçu de Paiement</title>
@@ -224,7 +227,7 @@ window.printReceipt = function(eleveId) {
                 <h1>REÇU DE PAIEMENT</h1>
                 <div class="school-name">${ecoleName}</div>
                 <div style="text-align:center; margin-bottom:20px;">${dateStr}</div>
-                
+
                 <div class="row">
                     <span>Élève:</span>
                     <strong>${row.prenom} ${row.nom}</strong>
@@ -237,7 +240,7 @@ window.printReceipt = function(eleveId) {
                     <span>Mois:</span>
                     <span>${mois}</span>
                 </div>
-                
+
                 <div class="total row">
                     <span>MONTANT PAYÉ:</span>
                     <span>${montant} FCFA</span>
@@ -248,14 +251,18 @@ window.printReceipt = function(eleveId) {
                     <p>Cachet de l'école</p>
                 </div>
             </div>
-            <script>
-                window.print();
-                // window.close(); // Optional
-            </script>
         </body>
         </html>
-    `);
+    `;
+
+    win.document.open();
+    win.document.write(htmlContent);
     win.document.close();
+
+    // Trigger print after a short delay to ensure content is loaded
+    setTimeout(() => {
+        win.print();
+    }, 100);
 }
 
 // Expose to window for onclick

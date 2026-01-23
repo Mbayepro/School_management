@@ -1,42 +1,19 @@
 import { supabase, db } from './supabaseClient.js';
 
-const form = document.getElementById('classeForm');
-const classeNomEl = document.getElementById('classeNom');
-const classeNiveauEl = document.getElementById('classeNiveau');
-const classeMessage = document.getElementById('classeMessage');
-const classesGrid = document.getElementById('classesGrid');
-const totalClassesPill = document.getElementById('totalClassesPill');
-const noClassesMsg = document.getElementById('noClassesMsg');
-
-// Modal elements
-const assignProfModal = document.getElementById('assignProfModal');
-const closeAssignModal = document.getElementById('closeAssignModal');
-const submitAssignBtn = document.getElementById('submitAssignBtn');
-const assignProfEmail = document.getElementById('assignProfEmail');
-const assignClasseId = document.getElementById('assignClasseId');
-const assignMatiere = document.getElementById('assignMatiere');
-const currentTeachersList = document.getElementById('currentTeachersList');
-
-if (closeAssignModal) {
-    closeAssignModal.addEventListener('click', () => {
-        assignProfModal.classList.add('hidden');
-    });
-}
-
 // Logic: Open Modal -> Load current teachers (via getEnseignements) -> Allow Add
-async function openAssignModal(classeId) {
+async function openAssignModal(classeId, assignProfEmail, assignMatiere, assignClasseId, currentTeachersList, assignProfModal) {
     if (assignProfEmail) assignProfEmail.value = '';
     if (assignMatiere) assignMatiere.value = '';
     if (assignClasseId) assignClasseId.value = classeId;
-    
+
     // Load current teachers
     if (currentTeachersList) {
         currentTeachersList.innerHTML = '<p class="muted" style="text-align:center;">Chargement...</p>';
-        
+
         const { data: ens, error } = await db.getEnseignementsByClasse(classeId);
-        
+
         currentTeachersList.innerHTML = '';
-        
+
         if (error) {
              currentTeachersList.innerHTML = '<p class="error">Erreur chargement</p>';
         } else if (!ens || ens.length === 0) {
@@ -46,7 +23,7 @@ async function openAssignModal(classeId) {
             list.style.listStyle = 'none';
             list.style.padding = 0;
             list.style.margin = 0;
-            
+
             ens.forEach(e => {
                 const li = document.createElement('li');
                 li.style.display = 'flex';
@@ -54,92 +31,115 @@ async function openAssignModal(classeId) {
                 li.style.alignItems = 'center';
                 li.style.padding = '4px 0';
                 li.style.borderBottom = '1px solid #f1f5f9';
-                
+
                 li.innerHTML = `
                     <span><b>${e.matiere}</b></span>
                     <button class="btn ghost btn-sm" style="color:#ef4444; padding:2px 6px;">✕</button>
                 `;
-                
+
                 // Delete action
                 li.querySelector('button').addEventListener('click', async () => {
                     if(!confirm('Retirer ce cours ?')) return;
                     await db.deleteEnseignement(e.id);
-                    openAssignModal(classeId); // Refresh
+                    openAssignModal(classeId, assignProfEmail, assignMatiere, assignClasseId, currentTeachersList, assignProfModal); // Refresh
                 });
-                
+
                 list.appendChild(li);
             });
             currentTeachersList.appendChild(list);
         }
     }
-    
+
     if (assignProfModal) assignProfModal.classList.remove('hidden');
-}
-
-if (submitAssignBtn) {
-    submitAssignBtn.addEventListener('click', async () => {
-        let email = assignProfEmail.value.trim().toLowerCase();
-        const matiere = assignMatiere.value.trim();
-        const cid = assignClasseId.value;
-        
-        if (!email || !cid || !matiere) {
-            alert("Veuillez remplir l'email et la matière.");
-            return;
-        }
-
-        if (!email.includes('@')) {
-            email += '@ecole.local';
-        }
-
-        const prev = submitAssignBtn.textContent;
-        submitAssignBtn.disabled = true;
-        submitAssignBtn.textContent = 'Ajout...';
-
-        try {
-            // Use getUserByEmail to get ID
-            const { data: userData, error: userErr } = await db.getUserByEmail(email);
-            
-            if (userErr || !userData) {
-                alert("Professeur introuvable. Avez-vous créé son compte d'abord ?");
-                return;
-            }
-            
-            const pid = userData.id;
-
-            const { error: insErr } = await db.addEnseignement({
-                classe_id: cid,
-                professeur_id: pid,
-                matiere: matiere
-            });
-
-            if (insErr) {
-                if (insErr.code === '23505') alert('Ce professeur enseigne déjà cette matière dans cette classe.');
-                else alert(insErr.message);
-            } else {
-                const { error: assignErr } = await db.assignClassToProfessor(email, cid);
-                if (assignErr) {
-                    alert(assignErr.message);
-                    return;
-                }
-                alert('Enseignant ajouté !');
-                openAssignModal(cid); // Refresh list
-                await loadClasses();
-            }
-
-        } catch (e) {
-            console.error(e);
-            alert('Erreur: ' + e.message);
-        } finally {
-            submitAssignBtn.disabled = false;
-            submitAssignBtn.textContent = prev;
-        }
-    });
 }
 
 let ecoleId = null;
 let professeurs = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const form = document.getElementById('classeForm');
+  const classeNomEl = document.getElementById('classeNom');
+  const classeNiveauEl = document.getElementById('classeNiveau');
+  const classeMessage = document.getElementById('classeMessage');
+  const classesGrid = document.getElementById('classesGrid');
+  const totalClassesPill = document.getElementById('totalClassesPill');
+  const noClassesMsg = document.getElementById('noClassesMsg');
+
+  // Modal elements
+  const assignProfModal = document.getElementById('assignProfModal');
+  const closeAssignModal = document.getElementById('closeAssignModal');
+  const submitAssignBtn = document.getElementById('submitAssignBtn');
+  const assignProfEmail = document.getElementById('assignProfEmail');
+  const assignClasseId = document.getElementById('assignClasseId');
+  const assignMatiere = document.getElementById('assignMatiere');
+  const currentTeachersList = document.getElementById('currentTeachersList');
+
+  if (closeAssignModal) {
+      closeAssignModal.addEventListener('click', () => {
+          assignProfModal.classList.add('hidden');
+      });
+  }
+
+  if (submitAssignBtn) {
+      submitAssignBtn.addEventListener('click', async () => {
+          let email = assignProfEmail.value.trim().toLowerCase();
+          const matiere = assignMatiere.value.trim();
+          const cid = assignClasseId.value;
+
+          if (!email || !cid || !matiere) {
+              alert("Veuillez remplir l'email et la matière.");
+              return;
+          }
+
+          if (!email.includes('@')) {
+              email += '@ecole.local';
+          }
+
+          const prev = submitAssignBtn.textContent;
+          submitAssignBtn.disabled = true;
+          submitAssignBtn.textContent = 'Ajout...';
+
+          try {
+              // Use getUserByEmail to get ID
+              const { data: userData, error: userErr } = await db.getUserByEmail(email);
+
+              if (userErr || !userData) {
+                  alert("Professeur introuvable. Avez-vous créé son compte d'abord ?");
+                  return;
+              }
+
+              const pid = userData.id;
+
+              const { error: insErr } = await db.addEnseignement({
+                  classe_id: cid,
+                  professeur_id: pid,
+                  matiere: matiere
+              });
+
+              if (insErr) {
+                  if (insErr.code === '23505') alert('Ce professeur enseigne déjà cette matière dans cette classe.');
+                  else alert(insErr.message);
+              } else {
+                  const { error: assignErr } = await db.assignClassToProfessor(email, cid);
+                  if (assignErr) {
+                      alert(assignErr.message);
+                      return;
+                  }
+                  alert('Enseignant ajouté !');
+                  openAssignModal(cid, assignProfEmail, assignMatiere, assignClasseId, currentTeachersList, assignProfModal); // Refresh list
+                  await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
+              }
+
+          } catch (e) {
+              console.error(e);
+              alert('Erreur: ' + e.message);
+          } finally {
+              submitAssignBtn.disabled = false;
+              submitAssignBtn.textContent = prev;
+          }
+      });
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       ecoleId = refreshed?.ecole_id || null;
     } catch (_) {}
     if (!ecoleId) {
-      showError('Impossible de créer une classe: compte non associé à une école.');
+      showError('Impossible de créer une classe: compte non associé à une école.', classeMessage);
       if (form) {
         Array.from(form.querySelectorAll('input, select, button')).forEach(el => { el.disabled = true; });
       }
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (classesGrid) {
-    await loadClasses();
+    await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
   }
 
   form.addEventListener('submit', async (e) => {
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     classeMessage.style.display = 'none';
 
     if (!ecoleId) {
-      showError('Impossible de créer une classe: compte non associé à une école.');
+      showError('Impossible de créer une classe: compte non associé à une école.', classeMessage);
       return;
     }
 
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       .ilike('nom', nom)
       .limit(1);
     if (!existErr && exist && exist.length > 0) {
-      showError('Une classe avec ce nom existe déjà pour ce niveau.');
+      showError('Une classe avec ce nom existe déjà pour ce niveau.', classeMessage);
       return;
     }
 
@@ -198,11 +198,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         .insert([{ nom, niveau, ecole_id: ecoleId }]);
 
       if (error) {
-        showError(`Erreur lors de la création: ${error.message ?? 'inconnue'}`);
+        showError(`Erreur lors de la création: ${error.message ?? 'inconnue'}`, classeMessage);
         return;
       }
     } catch (err) {
-      showError(`Erreur lors de la création: ${err?.message ?? 'inconnue'}`);
+      showError(`Erreur lors de la création: ${err?.message ?? 'inconnue'}`, classeMessage);
       return;
     }
 
@@ -210,20 +210,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     classeMessage.textContent = 'Classe créée avec succès.';
     classeMessage.style.display = 'block';
     classeMessage.style.color = '#10b981';
-    await loadClasses();
+    await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
     // Optional: Toast notification could go here
   });
 });
 
-function showError(msg) {
+function showError(msg, classeMessage) {
   classeMessage.textContent = msg;
   classeMessage.style.display = 'block';
 }
 
-async function loadClasses() {
+async function loadClasses(classesGrid, totalClassesPill, noClassesMsg) {
   if (!classesGrid) return;
   classesGrid.innerHTML = '<div class="muted" style="grid-column: 1/-1; text-align: center;">Chargement...</div>';
-  
+
   const { data, error } = await db.getClassesByEcole(ecoleId);
   if (error) {
     if (classesGrid) classesGrid.innerHTML = '<div class="error">Erreur de chargement.</div>';
@@ -231,10 +231,10 @@ async function loadClasses() {
   }
   // Note: La liste des professeurs n'est pas chargée ici à cause des RLS sur profiles.
   // On propose l'assignation par email via RPC pour contourner proprement.
-  
+
   if (!classesGrid) return;
   classesGrid.innerHTML = '';
-  
+
   const count = data ? data.length : 0;
   if (totalClassesPill) totalClassesPill.textContent = `${count} classe${count > 1 ? 's' : ''}`;
 
@@ -242,7 +242,7 @@ async function loadClasses() {
     if (noClassesMsg) noClassesMsg.classList.remove('hidden');
     return;
   }
-  
+
   if (noClassesMsg) noClassesMsg.classList.add('hidden');
 
   // Trier par niveau personnalisé puis par nom
@@ -281,7 +281,7 @@ async function loadClasses() {
 
       const assignEmailBtn = card.querySelector('[data-action="assign-email"]');
       assignEmailBtn?.addEventListener('click', () => {
-        openAssignModal(c.id);
+        openAssignModal(c.id, assignProfEmail, assignMatiere, assignClasseId, currentTeachersList, assignProfModal);
       });
       // Update pill with actual count of enseignements
       const pill = card.querySelector('[data-role="ens-pill"]');
@@ -314,7 +314,7 @@ async function loadClasses() {
           deleteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
           return;
         }
-        await loadClasses();
+        await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
       });
 
       classesGrid.appendChild(card);

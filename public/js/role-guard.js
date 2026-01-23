@@ -1,9 +1,11 @@
 import { supabase, db } from "./supabaseClient.js";
 
-document.addEventListener("DOMContentLoaded", async () => {
+const init = async () => {
+  /* Service Worker désactivé pour le développement
   if ('serviceWorker' in navigator) {
     try { await navigator.serviceWorker.register('/sw.js'); } catch (_) {}
   }
+  */
   let deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -83,4 +85,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!allowedRoles.includes(role)) {
     deny("Accès refusé");
   }
-});
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

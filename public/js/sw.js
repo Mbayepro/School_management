@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sm-cache-v2';
+const CACHE_NAME = 'sm-cache-v3';
 const CORE_ASSETS = [
   '/',
   '/login.html',
@@ -51,6 +51,18 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.origin === location.origin) {
+    if (/\.(js|css)$/.test(url.pathname)) {
+      event.respondWith(
+        fetch(request)
+          .then((res) => {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(request, copy));
+            return res;
+          })
+          .catch(() => caches.match(request))
+      );
+      return;
+    }
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;

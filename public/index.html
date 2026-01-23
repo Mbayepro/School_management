@@ -353,10 +353,12 @@
       installBtn.style.display = 'none';
     });
   }
+  /* Service Worker désactivé pour le développement
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/js/sw.js');
     });
   }
+  */
 </script>
 </html>

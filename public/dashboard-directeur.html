@@ -6,10 +6,11 @@
   <title>School Management – Tableau de bord</title>
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="css/dashboard-directeur.css"/>
-  <link rel="stylesheet" href="css/style.css"/>
-  <link rel="stylesheet" href="css/scanner.css"/>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script> 
+  <link rel="stylesheet" href="css/dashboard-directeur.css?v=force" />
+  <link rel="stylesheet" href="css/style.css?v=force" />
+  <link rel="stylesheet" href="css/scanner.css?v=force" />
+  <script src="js/kill-sw.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -205,10 +206,10 @@
     </div>
   </div>
 
-<script type="module" src="js/scanner.js"></script>
-<script type="module" src="js/role-guard.js"></script>
-<script type="module" src="js/auth.js"></script>
-<script type="module" src="js/directeur.js"></script>
+<script type="module" src="js/scanner.js?v=force"></script>
+<script type="module" src="js/role-guard.js?v=force"></script>
+<script type="module" src="js/auth.js?v=force"></script>
+<script type="module" src="js/directeur.js?v=force"></script>
 <script type="module">
   import { setupLogoutButton, setupTopbarBrand } from './js/auth.js';
   document.addEventListener('DOMContentLoaded', () => {
@@ -217,11 +218,13 @@
   });
 </script>
 <script>
+  /* Service Worker désactivé pour le développement
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/js/sw.js');
     });
   }
+  */
 </script>
 </body>
 </html>

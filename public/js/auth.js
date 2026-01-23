@@ -415,7 +415,7 @@ export async function setupTopbarBrand() {
 }
 
 // Si on est sur login.html, brancher le formulaire sans redirection automatique
-document.addEventListener("DOMContentLoaded", () => {
+const init = () => {
   const page = window.location.pathname.split("/").pop();
   if (page === "login.html") {
     setupLoginForm();
@@ -426,4 +426,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
   setupChangePasswordUI();
-});
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

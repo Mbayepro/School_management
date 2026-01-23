@@ -6,7 +6,8 @@
   <title>School Management – Connexion</title>
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=force" />
+  <script src="js/kill-sw.js"></script>
 </head>
 <body>
 
@@ -78,13 +79,15 @@
   </main>
 
   <!-- ⚠️ UN SEUL chargement -->
-  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/auth.js?v=force"></script>
   <script>
+    /* Service Worker désactivé pour le développement
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/js/sw.js');
       });
     }
+    */
   </script>
   <script type="module">
     document.addEventListener('DOMContentLoaded', () => {

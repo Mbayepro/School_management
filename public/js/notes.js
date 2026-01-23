@@ -5,7 +5,8 @@ let currentClasseId = null;
 let currentMatiereId = null;
 let currentEvalId = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
+const init = async () => {
+    console.log('Init notes.js started');
     const selectClasse = document.getElementById('selectClasse');
     const selectMatiere = document.getElementById('selectMatiere');
     const selectEvaluation = document.getElementById('selectEvaluation');
@@ -16,63 +17,84 @@ document.addEventListener('DOMContentLoaded', async () => {
     const evalModal = document.getElementById('evalModal');
     const closeEvalModal = document.getElementById('closeEvalModal');
     const evalForm = document.getElementById('evalForm');
+    const evalClasse = document.getElementById('evalClasse');
+    const evalMatiere = document.getElementById('evalMatiere');
 
-    // Load User & Ecole
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return window.location.href = 'index.html';
+    // --- 1. Attacher les écouteurs d'événements (UI) IMMÉDIATEMENT ---
 
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    if (!profile) return;
-    ecoleId = profile.ecole_id;
-
-    // Load Classes
-    await loadClasses();
-
-    // Event Listeners
-    selectClasse.addEventListener('change', async (e) => {
-        currentClasseId = e.target.value;
-        currentMatiereId = null;
-        currentEvalId = null;
-        resetSelect(selectMatiere, "Sélectionner une matière d'abord");
-        resetSelect(selectEvaluation, "Sélectionner une matière d'abord");
-        selectMatiere.disabled = !currentClasseId;
-        selectEvaluation.disabled = true;
-        newEvalBtn.disabled = true;
-        hideNotes();
-
-        if (currentClasseId) {
-            await loadMatieres(currentClasseId);
-        }
-    });
-
-    selectMatiere.addEventListener('change', async (e) => {
-        currentMatiereId = e.target.value;
-        currentEvalId = null;
-        resetSelect(selectEvaluation, "Chargement...");
-        selectEvaluation.disabled = false;
-        newEvalBtn.disabled = false;
-        hideNotes();
-
-        if (currentMatiereId) {
-            await loadEvaluations(currentClasseId, currentMatiereId);
-        }
-    });
-
-    selectEvaluation.addEventListener('change', async (e) => {
-        currentEvalId = e.target.value;
-        if (currentEvalId) {
-            await loadNotes(currentEvalId);
-        } else {
+    if (selectClasse) {
+        selectClasse.addEventListener('change', async (e) => {
+            currentClasseId = e.target.value;
+            currentMatiereId = null;
+            currentEvalId = null;
+            resetSelect(selectMatiere, "Sélectionner une matière d'abord");
+            resetSelect(selectEvaluation, "Sélectionner une matière d'abord");
+            if (selectMatiere) selectMatiere.disabled = !currentClasseId;
+            if (selectEvaluation) selectEvaluation.disabled = true;
             hideNotes();
-        }
-    });
+
+            if (currentClasseId) {
+                await loadMatieres(currentClasseId, selectMatiere);
+            }
+        });
+    }
+
+    if (selectMatiere) {
+        selectMatiere.addEventListener('change', async (e) => {
+            currentMatiereId = e.target.value;
+            currentEvalId = null;
+            resetSelect(selectEvaluation, "Chargement...");
+            if (selectEvaluation) selectEvaluation.disabled = false;
+            if (newEvalBtn) newEvalBtn.disabled = false;
+            hideNotes();
+
+            if (currentMatiereId) {
+                await loadEvaluations(currentClasseId, currentMatiereId);
+            }
+        });
+    }
+    
+    if (evalClasse) {
+        evalClasse.addEventListener('change', async (e) => {
+            const cid = e.target.value;
+            if (cid) {
+                await loadMatieres(cid, evalMatiere);
+            } else {
+                resetSelect(evalMatiere, "Sélectionner une classe");
+            }
+        });
+    }
+
+    if (selectEvaluation) {
+        selectEvaluation.addEventListener('change', async (e) => {
+            currentEvalId = e.target.value;
+            if (currentEvalId) {
+                await loadNotes(currentEvalId);
+            } else {
+                hideNotes();
+            }
+        });
+    }
 
     if (newEvalBtn) {
-        newEvalBtn.addEventListener('click', () => {
-            if (!currentClasseId || !currentMatiereId) return;
-            evalModal.classList.remove('hidden');
+        newEvalBtn.addEventListener('click', async () => {
+            if (evalModal) evalModal.classList.remove('hidden');
+            
+            // Pre-fill if selected on main page
+            if (currentClasseId && evalClasse) {
+                evalClasse.value = currentClasseId;
+                await loadMatieres(currentClasseId, evalMatiere);
+                if (currentMatiereId && evalMatiere) {
+                    evalMatiere.value = currentMatiereId;
+                }
+            } else if (evalClasse && evalClasse.value) {
+                 await loadMatieres(evalClasse.value, evalMatiere);
+            }
+
             const dateEl = document.getElementById('evalDate');
-            if (dateEl) dateEl.valueAsDate = new Date();
+            if (dateEl && !dateEl.value) {
+                dateEl.valueAsDate = new Date();
+            }
             const msgEl = document.getElementById('evalMsg');
             if (msgEl) { msgEl.textContent = ''; msgEl.style.display = 'none'; msgEl.style.color = ''; }
         });
@@ -82,7 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeEvalModal.addEventListener('click', () => {
             const msgEl = document.getElementById('evalMsg');
             if (msgEl) { msgEl.textContent = ''; msgEl.style.display = 'none'; msgEl.style.color = ''; }
-            evalModal.classList.add('hidden');
+            if (evalModal) evalModal.classList.add('hidden');
         });
     }
     // Close when clicking outside
@@ -99,75 +121,132 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (evalForm) {
         evalForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log("Formulaire création évaluation soumis");
+            
             const submitBtn = evalForm.querySelector('button[type="submit"]');
             const prev = submitBtn ? submitBtn.textContent : '';
             if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Création…'; }
+            
             const titre = document.getElementById('evalTitre').value;
             const type = document.getElementById('evalType').value;
             const trimestre = document.getElementById('evalTrimestre').value;
             const date = document.getElementById('evalDate').value;
+            
+            // Get from modal fields first
+            const selectedClasseId = evalClasse ? evalClasse.value : currentClasseId;
+            const selectedMatiereId = evalMatiere ? evalMatiere.value : currentMatiereId;
 
-            if (!currentClasseId || !currentMatiereId) {
+            console.log("Données évaluation:", { titre, type, trimestre, date, selectedClasseId, selectedMatiereId });
+
+            if (!selectedClasseId || !selectedMatiereId) {
+                console.error("Classe ou matière manquante");
+                alert("Veuillez sélectionner une classe et une matière.");
                 if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = prev; }
                 return;
             }
 
-            const { data, error } = await supabase.from('evaluations').insert([{
-                titre,
-                type_eval: type,
-                trimestre: parseInt(trimestre),
-                date_eval: date,
-                classe_id: currentClasseId,
-                matiere_id: currentMatiereId
-            }]).select().single();
+            try {
+                 const { data, error } = await supabase
+                .from('evaluations')
+                .insert([{
+                    titre,
+                    type_eval: type,
+                    trimestre: parseInt(trimestre),
+                    date_eval: date,
+                    classe_id: selectedClasseId,
+                    matiere_id: selectedMatiereId,
+                    ecole_id: ecoleId
+                }])
+                .select()
+                .single();
 
-            if (error) {
-                alert("Erreur lors de la création de l'évaluation: " + error.message);
-            } else {
+                if (error) throw error;
+                
                 const msgEl = document.getElementById('evalMsg');
                 if (msgEl) {
-                    msgEl.textContent = 'Évaluation créée avec succès.';
-                    msgEl.style.color = '#10b981';
-                    msgEl.style.display = 'block';
+                    msgEl.textContent = "Évaluation créée avec succès !";
+                    msgEl.style.color = "green";
+                    msgEl.style.display = "block";
                 }
-                await loadEvaluations(currentClasseId, currentMatiereId);
-                selectEvaluation.value = data.id;
-                currentEvalId = data.id;
-                await loadNotes(currentEvalId);
+                
+                // Refresh list if we are in the same view
+                if (currentClasseId === selectedClasseId && currentMatiereId === selectedMatiereId) {
+                    await loadEvaluations(currentClasseId, currentMatiereId);
+                }
+
                 setTimeout(() => {
-                    if (msgEl) { msgEl.textContent = ''; msgEl.style.display = 'none'; msgEl.style.color = ''; }
-                    evalModal.classList.add('hidden');
-                }, 1200);
+                     if (evalModal) evalModal.classList.add('hidden');
+                     if (evalForm) evalForm.reset();
+                     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = prev; }
+                     if (msgEl) msgEl.style.display = 'none';
+                }, 1500);
+
+            } catch (err) {
+                console.error("Erreur création éval:", err);
+                const msgEl = document.getElementById('evalMsg');
+                if (msgEl) {
+                    msgEl.textContent = "Erreur: " + err.message;
+                    msgEl.style.color = "red";
+                    msgEl.style.display = "block";
+                }
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = prev; }
             }
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = prev; }
         });
+    }
+
+    // --- 2. Chargement des données (ASYNC) ---
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return window.location.href = 'index.html';
+
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (!profile) return;
+        ecoleId = profile.ecole_id;
+
+        // Load Classes
+        await loadClasses();
+    } catch (err) {
+        console.error("Error loading data in notes.js:", err);
     }
 
     // Functions
 
     async function loadClasses() {
-        selectClasse.innerHTML = '<option value="">Chargement...</option>';
+        if (selectClasse) selectClasse.innerHTML = '<option value="">Chargement...</option>';
+        if (evalClasse) evalClasse.innerHTML = '<option value="">Chargement...</option>';
+
         const { data: classes } = await supabase
             .from('classes')
             .select('id, nom, niveau')
             .eq('ecole_id', ecoleId)
             .order('nom');
         
-        selectClasse.innerHTML = '<option value="">-- Choisir une classe --</option>';
+        if (selectClasse) selectClasse.innerHTML = '<option value="">-- Choisir une classe --</option>';
+        if (evalClasse) evalClasse.innerHTML = '<option value="">-- Choisir --</option>';
+
         classes?.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = `${c.nom} (${c.niveau})`;
-            selectClasse.appendChild(opt);
+            const label = `${c.nom} (${c.niveau})`;
+            
+            if (selectClasse) {
+                const opt1 = document.createElement('option');
+                opt1.value = c.id;
+                opt1.textContent = label;
+                selectClasse.appendChild(opt1);
+            }
+
+            if (evalClasse) {
+                const opt2 = document.createElement('option');
+                opt2.value = c.id;
+                opt2.textContent = label;
+                evalClasse.appendChild(opt2);
+            }
         });
     }
 
-    async function loadMatieres(classeId) {
-        selectMatiere.innerHTML = '<option value="">Chargement...</option>';
-        // Fetch matieres linked to this class OR generic subjects? 
-        // For now, let's fetch all subjects for the school and assume they apply, 
-        // or strictly those with classe_id = current or null?
-        // Based on schema, matieres has classe_id.
+    async function loadMatieres(classeId, targetSelect = selectMatiere) {
+        if (!targetSelect) return;
+        targetSelect.innerHTML = '<option value="">Chargement...</option>';
+        
         let { data: matieres } = await supabase
             .from('matieres')
             .select('id, nom')
@@ -175,23 +254,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             .or(`classe_id.eq.${classeId},classe_id.is.null`)
             .order('nom');
         if (!matieres || matieres.length === 0) {
-            const { data: created } = await supabase
-                .from('matieres')
-                .insert([{ nom: 'Général', ecole_id: ecoleId, classe_id: classeId }])
-                .select();
-            matieres = created || [];
+            // Fallback or empty
         }
 
-        selectMatiere.innerHTML = '<option value="">-- Choisir une matière --</option>';
+        targetSelect.innerHTML = '<option value="">-- Choisir une matière --</option>';
         matieres?.forEach(m => {
             const opt = document.createElement('option');
             opt.value = m.id;
             opt.textContent = m.nom;
-            selectMatiere.appendChild(opt);
+            targetSelect.appendChild(opt);
         });
     }
 
     async function loadEvaluations(classeId, matiereId) {
+        if (!selectEvaluation) return;
         selectEvaluation.innerHTML = '<option value="">Chargement...</option>';
         const { data: evals } = await supabase
             .from('evaluations')
@@ -210,6 +286,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function loadNotes(evalId) {
+        if (!notesContainer || !emptyState || !notesBody) return;
+        
         notesContainer.classList.remove('hidden');
         emptyState.classList.add('hidden');
         notesBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chargement des élèves...</td></tr>';
@@ -275,8 +353,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await saveNote(evalId, eleve.id, val, app);
                 
                 const indicator = document.getElementById(`saved-${eleve.id}`);
-                indicator.classList.add('visible');
-                setTimeout(() => indicator.classList.remove('visible'), 2000);
+                if (indicator) {
+                    indicator.classList.add('visible');
+                    setTimeout(() => indicator.classList.remove('visible'), 2000);
+                }
             };
 
             valInput.addEventListener('change', save);
@@ -287,6 +367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function saveNote(evalId, eleveId, valeur, appreciation) {
         // Check if note exists
         // Using upsert based on constraint (evaluation_id, eleve_id)
+        console.log(`Sauvegarde note - Eval: ${evalId}, Eleve: ${eleveId}, Val: ${valeur}`);
         
         const { error } = await supabase
             .from('notes')
@@ -299,17 +380,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (error) {
             console.error('Error saving note:', error);
-            alert('Erreur de sauvegarde pour un élève.');
+            alert('Erreur de sauvegarde pour un élève: ' + error.message);
+        } else {
+            console.log('Note sauvegardée avec succès');
         }
     }
 
     function resetSelect(el, msg) {
+        if (!el) return;
         el.innerHTML = `<option value="">${msg}</option>`;
         el.value = "";
     }
 
     function hideNotes() {
-        notesContainer.classList.add('hidden');
-        emptyState.classList.remove('hidden');
+        if (notesContainer) notesContainer.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
     }
-});
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

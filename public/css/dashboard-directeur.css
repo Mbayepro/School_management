@@ -337,3 +337,34 @@ body {
     gap: 10px;
   }
 }
+/* ========== Fix Impression Cartes ========== */
+@media print {
+  /* On cache tout le reste du site */
+  body * {
+    visibility: hidden;
+    background: none !important;
+  }
+  
+  /* On affiche uniquement la zone de la carte (assurez-vous que l'ID est correct) */
+  #card-to-print, 
+  #card-to-print *,
+  .printable-card,
+  .printable-card * {
+    visibility: visible;
+  }
+
+  /* On positionne la carte en haut à gauche de la page A4 */
+  #card-to-print, .printable-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block !important;
+  }
+
+  /* Force l'impression des couleurs et du logo */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

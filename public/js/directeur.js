@@ -9,7 +9,7 @@ const valImpayes = document.getElementById('valImpayes');
 const statusPill = document.getElementById('statusPill');
 const errorEl = document.getElementById('error-message'); // Might not exist in new HTML but good to have safeguard
 
-document.addEventListener('DOMContentLoaded', async () => {
+const init = async () => {
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if (userErr || !user) return; // auth.js handles redirect usually
 
@@ -195,7 +195,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize Charts
   await loadCharts(ecoleId, month);
-});
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
 async function loadCharts(ecoleId, month) {
     const ctxPayment = document.getElementById('paymentChart');
