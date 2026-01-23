@@ -262,9 +262,39 @@ const init = async () => {
             .or(`classe_id.eq.${classeId},classe_id.is.null`)
             .order('nom');
         if (!matieres || matieres.length === 0) {
-            targetSelect.innerHTML = '<option value="">Aucune matière disponible</option>';
-            targetSelect.disabled = true;
-            return;
+            const { data: ens } = await supabase
+                .from('enseignements')
+                .select('matiere')
+                .eq('classe_id', classeId);
+            const names = Array.from(new Set((ens || []).map(e => (e.matiere || '').trim()).filter(Boolean)));
+            if (names.length > 0) {
+                const { data: existing } = await supabase
+                    .from('matieres')
+                    .select('id, nom')
+                    .eq('ecole_id', ecoleId)
+                    .in('nom', names);
+                const existingNames = new Set((existing || []).map(m => m.nom));
+                const toInsert = names.filter(n => !existingNames.has(n)).map(n => ({
+                    nom: n,
+                    ecole_id: ecoleId,
+                    classe_id: classeId
+                }));
+                if (toInsert.length > 0) {
+                    await supabase.from('matieres').insert(toInsert);
+                }
+                const { data: matieres2 } = await supabase
+                    .from('matieres')
+                    .select('id, nom')
+                    .eq('ecole_id', ecoleId)
+                    .or(`classe_id.eq.${classeId},classe_id.is.null`)
+                    .order('nom');
+                matieres = matieres2;
+            }
+            if (!matieres || matieres.length === 0) {
+                targetSelect.innerHTML = '<option value="">Aucune matière disponible</option>';
+                targetSelect.disabled = true;
+                return;
+            }
         }
 
         targetSelect.innerHTML = '<option value="">-- Choisir une matière --</option>';
