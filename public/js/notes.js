@@ -31,10 +31,12 @@ const init = async () => {
             resetSelect(selectEvaluation, "Sélectionner une matière d'abord");
             if (selectMatiere) selectMatiere.disabled = !currentClasseId;
             if (selectEvaluation) selectEvaluation.disabled = true;
+            if (newEvalBtn) newEvalBtn.disabled = true;
             hideNotes();
 
             if (currentClasseId) {
                 await loadMatieres(currentClasseId, selectMatiere);
+                if (selectMatiere) selectMatiere.disabled = false;
             }
         });
     }
@@ -44,6 +46,12 @@ const init = async () => {
             currentMatiereId = e.target.value;
             currentEvalId = null;
             resetSelect(selectEvaluation, "Chargement...");
+            if (!currentMatiereId) {
+                if (selectEvaluation) selectEvaluation.disabled = true;
+                if (newEvalBtn) newEvalBtn.disabled = true;
+                hideNotes();
+                return;
+            }
             if (selectEvaluation) selectEvaluation.disabled = false;
             if (newEvalBtn) newEvalBtn.disabled = false;
             hideNotes();
@@ -254,7 +262,9 @@ const init = async () => {
             .or(`classe_id.eq.${classeId},classe_id.is.null`)
             .order('nom');
         if (!matieres || matieres.length === 0) {
-            // Fallback or empty
+            targetSelect.innerHTML = '<option value="">Aucune matière disponible</option>';
+            targetSelect.disabled = true;
+            return;
         }
 
         targetSelect.innerHTML = '<option value="">-- Choisir une matière --</option>';
@@ -264,6 +274,7 @@ const init = async () => {
             opt.textContent = m.nom;
             targetSelect.appendChild(opt);
         });
+        targetSelect.disabled = false;
     }
 
     async function loadEvaluations(classeId, matiereId) {
@@ -276,13 +287,20 @@ const init = async () => {
             .eq('matiere_id', matiereId)
             .order('date_eval', { ascending: false });
 
+        if (!evals || evals.length === 0) {
+            selectEvaluation.innerHTML = '<option value="">Aucune évaluation</option>';
+            selectEvaluation.disabled = true;
+            hideNotes();
+            return;
+        }
         selectEvaluation.innerHTML = '<option value="">-- Choisir une évaluation --</option>';
-        evals?.forEach(e => {
+        evals.forEach(e => {
             const opt = document.createElement('option');
             opt.value = e.id;
             opt.textContent = `${e.date_eval} - ${e.titre} (${e.type_eval})`;
             selectEvaluation.appendChild(opt);
         });
+        selectEvaluation.disabled = false;
     }
 
     async function loadNotes(evalId) {

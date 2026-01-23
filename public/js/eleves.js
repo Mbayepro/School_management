@@ -6,9 +6,10 @@ let classesById = new Map();
 let elevesByClass = new Map();
 let selectedEleve = null;
 
-// Debug: Annoncer le chargement de la v3
-console.log('Eleves JS v3 loading...');
-// alert("Mise à jour v3 chargée ! Si ce message s'affiche, le cache est vidé.");
+if (typeof window !== 'undefined') {
+  window.populateClasseFilter = () => {};
+  window.populatefilter = () => {};
+}
 
 const init = async () => {
   console.log('Init eleves.js started');
@@ -429,6 +430,9 @@ const init = async () => {
         });
         doc.save("eleves.pdf");
       }
+
+      window.populateClasseFilter = populateClasseFilter;
+      window.populatefilter = populateClasseFilter;
 
       function generateCardHtml(eleve) {
         const card = document.createElement('div');
