@@ -232,8 +232,7 @@ async function loadClasses(classesGrid, totalClassesPill, noClassesMsg) {
   // Note: La liste des professeurs n'est pas chargée ici à cause des RLS sur profiles.
   // On propose l'assignation par email via RPC pour contourner proprement.
 
-  if (!classesGrid) return;
-  classesGrid.innerHTML = '';
+  if (classesGrid) classesGrid.innerHTML = '';
 
   const count = data ? data.length : 0;
   if (totalClassesPill) totalClassesPill.textContent = `${count} classe${count > 1 ? 's' : ''}`;
@@ -288,35 +287,37 @@ async function loadClasses(classesGrid, totalClassesPill, noClassesMsg) {
       try {
         const { data: ens } = await db.getEnseignementsByClasse(c.id);
         const count = ens ? ens.length : 0;
-        if (count > 0) {
-          pill.textContent = `${count} professeur${count > 1 ? 's' : ''} assigné${count > 1 ? 's' : ''}`;
-          pill.className = 'pill';
-          pill.style.background = '';
-          pill.style.color = '';
-        } else {
-          pill.textContent = 'Aucun professeur';
-          pill.className = 'pill';
-          pill.style.background = '#f1f5f9';
-          pill.style.color = '#64748b';
+        if (pill) {
+          if (count > 0) {
+            pill.textContent = `${count} professeur${count > 1 ? 's' : ''} assigné${count > 1 ? 's' : ''}`;
+            pill.className = 'pill';
+            pill.style.background = '';
+            pill.style.color = '';
+          } else {
+            pill.textContent = 'Aucun professeur';
+            pill.className = 'pill';
+            pill.style.background = '#f1f5f9';
+            pill.style.color = '#64748b';
+          }
         }
       } catch (_) {}
       const deleteBtn = card.querySelector('.btn-icon');
-      deleteBtn.addEventListener('click', async () => {
+      deleteBtn && deleteBtn.addEventListener('click', async () => {
         const ok = confirm(`Voulez-vous vraiment supprimer la classe "${c.nom}" ?\nAttention : cela peut affecter les élèves liés.`);
         if (!ok) return;
 
         // Visual feedback
-        deleteBtn.innerHTML = '...';
+        if (deleteBtn) deleteBtn.innerHTML = '...';
         
         const { error: delErr } = await supabase.from('classes').delete().eq('id', c.id);
         if (delErr) {
           alert('Erreur suppression: ' + delErr.message);
-          deleteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+          if (deleteBtn) deleteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
           return;
         }
         await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
       });
 
-      classesGrid.appendChild(card);
+      classesGrid && classesGrid.appendChild(card);
     });
 }

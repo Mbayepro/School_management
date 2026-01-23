@@ -132,10 +132,10 @@
         /* Styles spécifiques pour le mode grille (plusieurs cartes) */
         body.printing-grid #printableCardsContainer {
             display: grid !important;
-            grid-template-columns: 1fr 1fr; /* 2 colonnes */
-            grid-auto-rows: max-content;
-            gap: 10px 20px; /* Espace vertical 10px, horizontal 20px */
-            padding: 10px 0;
+            grid-template-columns: repeat(2, 85.6mm);
+            grid-auto-rows: 54mm;
+            gap: 8mm 8mm;
+            padding: 0;
             justify-content: center;
         }
         
@@ -143,8 +143,7 @@
             break-inside: avoid;
             page-break-inside: avoid;
             border: 1px solid #000;
-            margin: 0 auto; /* Centrer dans la cellule de grille */
-            /* Force la taille exacte */
+            margin: 0 auto;
             width: 85.6mm !important;
             height: 54mm !important;
         }
@@ -170,6 +169,11 @@
         .id-card-info strong {
             color: #000 !important;
             text-shadow: none !important;
+        }
+        
+        .id-card-qr {
+            background: #ffffff !important;
+            padding: 8px !important;
         }
     }
   </style>

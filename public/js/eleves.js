@@ -452,7 +452,7 @@ const init = async () => {
         setTimeout(() => {
           const qrEl = card.querySelector(`#idCardQR-${eleve.id}`);
           if (qrEl && window.QRCode) {
-            new QRCode(qrEl, { text: String(eleve.id), width: 128, height: 128 });
+            new QRCode(qrEl, { text: String(eleve.id), width: 128, height: 128, colorDark: "#000000", colorLight: "#ffffff" });
           }
         }, 100);
         
@@ -475,12 +475,12 @@ const init = async () => {
             <div class="id-card-info"><strong>ID:</strong> ${eleve.id}</div>
           </div>
         `;
-        try {
-          const qrEl = idCardPreview.querySelector('#idCardQR');
-          if (qrEl && window.QRCode) {
-            new QRCode(qrEl, { text: String(eleve.id), width: 40, height: 40 });
-          }
-        } catch (_) {}
+      try {
+        const qrEl = idCardPreview.querySelector('#idCardQR');
+        if (qrEl && window.QRCode) {
+          new QRCode(qrEl, { text: String(eleve.id), width: 80, height: 80, colorDark: "#000000", colorLight: "#ffffff" });
+        }
+      } catch (_) {}
         idCardModal.classList.remove('hidden');
       }
 

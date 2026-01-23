@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reçu de Paiement</title>
+  <meta name="theme-color" content="#000000" />
+  <style>
+    body { font-family: 'Courier New', monospace; padding: 20px; background: #fff; color: #000; }
+    .receipt { border: 2px dashed #000; padding: 20px; max-width: 420px; margin: 0 auto; }
+    h1 { text-align: center; font-size: 18px; text-transform: uppercase; margin-bottom: 5px; }
+    .school-name { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 16px; }
+    .row { display: flex; justify-content: space-between; margin: 10px 0; }
+    .total { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 10px 0; font-weight: bold; margin-top: 20px; }
+    .footer { text-align: center; margin-top: 30px; font-size: 12px; }
+    @media print {
+      @page { size: A5; margin: 10mm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt" id="receipt"></div>
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const data = {
+        prenom: params.get('prenom') || '',
+        nom: params.get('nom') || '',
+        classe: params.get('classe') || '',
+        mois: params.get('mois') || '',
+        montant: params.get('montant') || '0',
+        ecole: params.get('ecole') || 'École',
+        date: params.get('date') || new Date().toLocaleDateString('fr-FR')
+      };
+      const montantFmt = Number(data.montant || 0).toLocaleString('fr-FR');
+      const html = `
+        <h1>REÇU DE PAIEMENT</h1>
+        <div class="school-name">${data.ecole}</div>
+        <div style="text-align:center; margin-bottom:20px;">${data.date}</div>
+        <div class="row"><span>Élève:</span><strong>${data.prenom} ${data.nom}</strong></div>
+        <div class="row"><span>Classe:</span><span>${data.classe}</span></div>
+        <div class="row"><span>Mois:</span><span>${data.mois}</span></div>
+        <div class="total row"><span>MONTANT PAYÉ:</span><span>${montantFmt} FCFA</span></div>
+        <div class="footer"><p>Merci pour votre paiement.</p><p>Cachet de l'école</p></div>
+      `;
+      const el = document.getElementById('receipt');
+      if (el) el.innerHTML = html;
+      setTimeout(() => window.print(), 200);
+    })();
+  </script>
+</body>
+</html>

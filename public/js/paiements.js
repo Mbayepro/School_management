@@ -201,68 +201,22 @@ window.printReceipt = function(eleveId) {
 
     const ecoleName = currentEcole ? currentEcole.nom : "École";
     const dateStr = new Date().toLocaleDateString('fr-FR');
-    const montant = (payment.montant || 0).toLocaleString('fr-FR');
+    const montant = (payment.montant || 0);
     const mois = document.getElementById('monthFilter').value;
 
-    const win = window.open('', 'Reçu', 'width=600,height=400');
+    // Build URL to dedicated receipt page to avoid cache issues and Trusted Types
+    const params = new URLSearchParams({
+        prenom: row.prenom || '',
+        nom: row.nom || '',
+        classe: row.classes?.nom || '',
+        mois,
+        montant: String(montant),
+        ecole: ecoleName,
+        date: dateStr,
+        v: 'v2'
+    }).toString();
 
-    // Create document content without document.write to avoid Trusted Types issues
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Reçu de Paiement</title>
-            <style>
-                body { font-family: 'Courier New', monospace; padding: 20px; }
-                .receipt { border: 2px dashed #000; padding: 20px; max-width: 400px; margin: 0 auto; }
-                h1 { text-align: center; font-size: 18px; text-transform: uppercase; margin-bottom: 5px; }
-                .school-name { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 16px; }
-                .row { display: flex; justify-content: space-between; margin: 10px 0; }
-                .total { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 10px 0; font-weight: bold; margin-top: 20px; }
-                .footer { text-align: center; margin-top: 30px; font-size: 12px; }
-            </style>
-        </head>
-        <body>
-            <div class="receipt">
-                <h1>REÇU DE PAIEMENT</h1>
-                <div class="school-name">${ecoleName}</div>
-                <div style="text-align:center; margin-bottom:20px;">${dateStr}</div>
-
-                <div class="row">
-                    <span>Élève:</span>
-                    <strong>${row.prenom} ${row.nom}</strong>
-                </div>
-                <div class="row">
-                    <span>Classe:</span>
-                    <span>${row.classes.nom}</span>
-                </div>
-                <div class="row">
-                    <span>Mois:</span>
-                    <span>${mois}</span>
-                </div>
-
-                <div class="total row">
-                    <span>MONTANT PAYÉ:</span>
-                    <span>${montant} FCFA</span>
-                </div>
-
-                <div class="footer">
-                    <p>Merci pour votre paiement.</p>
-                    <p>Cachet de l'école</p>
-                </div>
-            </div>
-        </body>
-        </html>
-    `;
-
-    win.document.open();
-    win.document.write(htmlContent);
-    win.document.close();
-
-    // Trigger print after a short delay to ensure content is loaded
-    setTimeout(() => {
-        win.print();
-    }, 100);
+    window.open(`recu_v2.html?${params}`, 'Reçu', 'width=600,height=400');
 }
 
 // Expose to window for onclick
