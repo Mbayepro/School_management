@@ -1,6 +1,5 @@
 import { supabase, db } from './supabaseClient.js';
 import CONFIG from './config.js';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const valClasses = document.getElementById('valClasses');
 const valEleves = document.getElementById('valEleves');
@@ -87,7 +86,19 @@ const init = async () => {
              const SUPABASE_URL = localStorage.getItem("SUPABASE_URL") || CONFIG.SUPABASE_URL;
              const SUPABASE_ANON_KEY = localStorage.getItem("SUPABASE_ANON_KEY") || CONFIG.SUPABASE_ANON_KEY;
 
-             const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+             let createClientFn = window.supabase && window.supabase.createClient;
+             if (!createClientFn) {
+                 try {
+                     const mod = await import('https://esm.sh/@supabase/supabase-js@2');
+                     createClientFn = mod.createClient;
+                 } catch(e) { console.error("Dynamic import failed", e); }
+             }
+             
+             if (!createClientFn) {
+                 throw new Error("Impossible d'initialiser le client Supabase.");
+             }
+
+             const tempClient = createClientFn(SUPABASE_URL, SUPABASE_ANON_KEY, {
                 auth: { 
                     persistSession: false,
                     autoRefreshToken: false,

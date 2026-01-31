@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import CONFIG from './config.js';
 import { setupLogoutButton } from "./auth.js";
 
 function setupSupabaseConfigUI() {
@@ -89,11 +89,24 @@ function setupDirectorManagement() {
       // 2. Création de l'utilisateur (Auth) si mot de passe fourni
       // On utilise un client temporaire pour ne pas écraser la session du Super Admin
       if (password && password.length >= 6) {
-        const SUPABASE_URL = localStorage.getItem("SUPABASE_URL");
-        const SUPABASE_ANON_KEY = localStorage.getItem("SUPABASE_ANON_KEY");
+        const SUPABASE_URL = localStorage.getItem("SUPABASE_URL") || CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = localStorage.getItem("SUPABASE_ANON_KEY") || CONFIG.SUPABASE_ANON_KEY;
         
         if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-           const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+           // Fallback to window.supabase.createClient if ESM import failed or unavailable
+           let createClientFn = window.supabase && window.supabase.createClient;
+           if (!createClientFn) {
+               try {
+                  const mod = await import('https://esm.sh/@supabase/supabase-js@2');
+                  createClientFn = mod.createClient;
+               } catch(e) { console.error("Dynamic import failed", e); }
+           }
+           
+           if (!createClientFn) {
+               throw new Error("Impossible d'initialiser le client Supabase (createClient manquant).");
+           }
+
+           const tempClient = createClientFn(SUPABASE_URL, SUPABASE_ANON_KEY, {
                auth: { 
                  persistSession: false, // Important : ne pas stocker la session
                  autoRefreshToken: false,
@@ -113,6 +126,9 @@ function setupDirectorManagement() {
                    throw new Error("Erreur création Auth: " + upError.message);
                }
            }
+        } else {
+            console.error("Configuration Supabase manquante (URL/KEY)");
+            throw new Error("Configuration Supabase manquante. Veuillez vérifier config.js ou le localStorage.");
         }
       } else if (!password && role === 'director') {
           // Avertissement si on crée un directeur sans mot de passe (s'il n'existe pas déjà)
