@@ -302,7 +302,11 @@ window.togglePayment = async (eleveId, isCurrentlyPaid) => {
         const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
         const { data: existing } = await db.getPaiementsByMonth(currentEcoleId, month);
         const countPaid = (existing || []).filter(p => p.statut === 'paye').length;
-        const numero = `REÇU-${String(countPaid + 1).padStart(3, '0')}`;
+        // Find existing payment for this student if any
+        const existingPayment = (existing || []).find(p => p.eleve_id === eleveId);
+        
+        // Preserve existing number if available, else generate new
+        const numero = existingPayment?.numero || `REÇU-${String(countPaid + 1).padStart(3, '0')}`;
         
         await db.upsertPaiement({
             eleve_id: eleveId,

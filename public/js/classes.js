@@ -230,52 +230,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
       } catch (e) {
           console.error(e);
-          showError('Erreur lors de la création: ' + e.message, classeMessage);
+          showError('Erreur lors de la création: ' + (e.message || JSON.stringify(e)), classeMessage);
       } finally {
           submitBtn.disabled = false;
           submitBtn.textContent = prevBtnText;
       }
     });
   }
-
-    const nom = classeNomEl.value.trim();
-    const niveau = classeNiveauEl.value;
-    if (!nom || !niveau) return;
-
-    // Bonus: empêcher doublons (même nom + même niveau pour l'école)
-    const { data: exist, error: existErr } = await supabase
-      .from('classes')
-      .select('id')
-      .eq('ecole_id', ecoleId)
-      .eq('niveau', niveau)
-      .ilike('nom', nom)
-      .limit(1);
-    if (!existErr && exist && exist.length > 0) {
-      showError('Une classe avec ce nom existe déjà pour ce niveau.', classeMessage);
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('classes')
-        .insert([{ nom, niveau, ecole_id: ecoleId }]);
-
-      if (error) {
-        showError(`Erreur lors de la création: ${error.message ?? 'inconnue'}`, classeMessage);
-        return;
-      }
-    } catch (err) {
-      showError(`Erreur lors de la création: ${err?.message ?? 'inconnue'}`, classeMessage);
-      return;
-    }
-
-    form.reset();
-    classeMessage.textContent = 'Classe créée avec succès.';
-    classeMessage.style.display = 'block';
-    classeMessage.style.color = '#10b981';
-    await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
-    // Optional: Toast notification could go here
-  });
 });
 
 function showError(msg, classeMessage) {

@@ -11,17 +11,18 @@
   <script src="js/kill-sw.js"></script>
   <style>
     body { font-family: 'Courier New', monospace; padding: 20px; background: #fff; color: #000; }
-    .receipt { border: 2px dashed #000; padding: 20px; max-width: 420px; margin: 0 auto; }
+    .receipt { border: 2px solid #000; padding: 20px; max-width: 420px; margin: 0 auto; position: relative; }
     h1 { text-align: center; font-size: 18px; text-transform: uppercase; margin-bottom: 5px; }
-    .school-name { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 16px; }
-    .row { display: flex; justify-content: space-between; margin: 10px 0; }
-    .total { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 10px 0; font-weight: bold; margin-top: 20px; }
-    .footer { text-align: center; margin-top: 30px; font-size: 12px; }
-    .brand { display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:8px; }
-    .brand img { width:28px; height:28px; object-fit:contain; }
-    .stamp { display:flex; justify-content:space-between; align-items:center; margin-top:16px; }
-    .stamp img { object-fit:contain; }
-    .sign { text-align:right; font-size:12px; }
+    .school-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; }
+    .school-logo { width: 50px; height: 50px; object-fit: contain; }
+    .school-name { font-weight: bold; font-size: 18px; text-align: center; }
+    .row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 14px; }
+    .total { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; font-weight: bold; margin-top: 20px; font-size: 16px; }
+    .footer { text-align: center; margin-top: 30px; font-size: 12px; font-style: italic; }
+    .stamp-area { position: relative; height: 100px; margin-top: 20px; display: flex; justify-content: flex-end; align-items: center; }
+    .stamp-img { width: 100px; height: 100px; object-fit: contain; position: absolute; right: 20px; bottom: 0; opacity: 0.8; }
+    .sign-img { width: 120px; height: 60px; object-fit: contain; position: absolute; right: 10px; bottom: 20px; z-index: 10; }
+    .sign-label { position: absolute; right: 20px; bottom: -20px; font-size: 12px; }
     @media print {
       @page { size: A5; margin: 10mm; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -50,25 +51,39 @@
       const montantFmt = Number(data.montant || 0).toLocaleString('fr-FR');
       const moisAffiche = data.mois_text || data.mois;
       const numero = params.get('numero') || '';
-      const styleTitle = `style="color:${color}"`;
+      
+      const borderColor = color; 
+      
       const html = `
-        <div class="brand">
-          ${logo ? `<img src="${logo}" alt="Logo">` : ''}
-          <h1 ${styleTitle}>REÇU DE PAIEMENT</h1>
+        <style>
+            .receipt { border-color: ${borderColor}; }
+            .total { border-color: ${borderColor}; color: ${borderColor}; }
+            .school-name { color: ${borderColor}; }
+        </style>
+        
+        <div class="school-header">
+          ${logo ? `<img src="${logo}" alt="Logo" class="school-logo">` : ''}
+          <div class="school-name">${data.ecole}</div>
         </div>
-        <div class="school-name">${data.ecole}</div>
-        ${numero ? `<div style="text-align:center; margin-bottom:8px;">${numero}</div>` : ''}
-        <div style="text-align:center; margin-bottom:20px;">${data.date}</div>
+        
+        <h1 style="color: ${color}; margin-bottom: 20px;">REÇU DE PAIEMENT</h1>
+        
+        ${numero ? `<div style="text-align:center; margin-bottom:8px; font-weight:bold;">N° ${numero}</div>` : ''}
+        <div style="text-align:center; margin-bottom:20px;">Date: ${data.date}</div>
+        
         <div class="row"><span>Élève:</span><strong>${data.prenom} ${data.nom}</strong></div>
         <div class="row"><span>Classe:</span><span>${data.classe}</span></div>
         <div class="row"><span>Mois:</span><span>${moisAffiche}</span></div>
-        <div class="total row"><span>MONTANT PAYÉ:</span><span>${montantFmt} FCFA</span></div>
-        <div class="stamp">
-          ${cachet ? `<img src="${cachet}" alt="Cachet" width="80" height="80">` : '<span></span>'}
-          ${signature ? `<img src="${signature}" alt="Signature" width="120" height="60">` : '<span></span>'}
+        
+        <div class="total row"><span>MONTANT PAYÉ</span><span>${montantFmt} FCFA</span></div>
+        
+        <div class="stamp-area">
+          ${cachet ? `<img src="${cachet}" alt="Cachet" class="stamp-img">` : ''}
+          ${signature ? `<img src="${signature}" alt="Signature" class="sign-img">` : ''}
+          <div class="sign-label">Le Directeur</div>
         </div>
-        <div class="sign">Le Directeur</div>
-        <div class="footer"><p>Merci pour votre paiement.</p></div>
+        
+        <div class="footer"><p>Merci pour votre confiance.</p></div>
       `;
       const el = document.getElementById('receipt');
       if (el) el.innerHTML = html;
@@ -94,7 +109,6 @@
               } else {
                   img.onload = checkPrint;
                   img.onerror = () => {
-                      // Hide broken images
                       img.style.display = 'none'; 
                       checkPrint();
                   };
