@@ -33,6 +33,9 @@ const heureLimiteSelect = document.getElementById('heureLimiteSelect');
 const btnSaveHeureLimite = document.getElementById('btnSaveHeureLimite');
 const heureLimiteMsg = document.getElementById('heureLimiteMsg');
 
+const btnFixClasses = document.getElementById('btnFixClasses');
+const fixMessage = document.getElementById('fixMessage');
+
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { window.location.href = 'login.html'; return; }
@@ -60,6 +63,7 @@ function bindEvents() {
   if (btnSaveEcole) btnSaveEcole.addEventListener('click', saveEcoleInfos);
   if (btnSaveNoteMax) btnSaveNoteMax.addEventListener('click', saveNoteMax);
   if (btnSaveHeureLimite) btnSaveHeureLimite.addEventListener('click', saveHeureLimite);
+  if (btnFixClasses) btnFixClasses.addEventListener('click', fixOrphanClasses);
 }
 
 function showError(msg) {
@@ -257,6 +261,37 @@ async function deleteSignature() {
   if (error) { showError("Suppression signature échouée: " + error.message); return; }
   previewSignature.src = '';
   alert('Signature supprimée.');
+}
+
+async function fixOrphanClasses() {
+  if (!ecoleId) return;
+  if (!confirm("Voulez-vous vraiment lier toutes les classes existantes sans école à votre école actuelle ?")) return;
+
+  fixMessage.textContent = "Traitement en cours...";
+  fixMessage.style.color = "blue";
+  
+  // Try to update classes where ecole_id is NULL
+  try {
+    const { data, error, count } = await supabase
+      .from('classes')
+      .update({ ecole_id: ecoleId })
+      .is('ecole_id', null)
+      .select();
+
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      fixMessage.textContent = `Succès ! ${data.length} classe(s) récupérée(s).`;
+      fixMessage.style.color = "green";
+    } else {
+      fixMessage.textContent = "Aucune classe orpheline trouvée ou vous n'avez pas la permission de les modifier.";
+      fixMessage.style.color = "orange";
+    }
+  } catch (e) {
+    console.error(e);
+    fixMessage.textContent = "Erreur: " + e.message;
+    fixMessage.style.color = "red";
+  }
 }
 
 async function saveEcoleInfos() {

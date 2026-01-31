@@ -513,6 +513,27 @@ export const utils = {
             toast.style.transform = 'translateX(100%)';
             setTimeout(() => toast.remove(), 300);
         }, 3000);
+    },
+
+    /**
+     * Convertit une URL d'image en Base64 (utile pour jsPDF)
+     * @param {string} url - L'URL de l'image
+     * @returns {Promise<string>} - La chaîne Base64
+     */
+    async urlToBase64(url) {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.error('Error converting image to base64:', e);
+            throw e;
+        }
     }
 };
 

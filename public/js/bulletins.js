@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient.js';
+import { supabase, utils } from './supabaseClient.js';
 
 let ecoleId = null;
 let noteMax = 20; // Default value
