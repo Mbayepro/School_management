@@ -454,8 +454,15 @@ export async function applySchoolTheme() {
     const logoEl = document.querySelector(".topbar .brand .nav-logo");
     if (logoEl) {
       const bucket = supabase.storage.from("school_assets");
-      const logoUrl = bucket.getPublicUrl(`${ecoleId}/logo.png`)?.data?.publicUrl || null;
-      if (logoUrl) logoEl.src = logoUrl;
+      const { data } = bucket.getPublicUrl(`${ecoleId}/logo.png`);
+      const logoUrl = data?.publicUrl;
+      
+      if (logoUrl) {
+        // Précharger l'image pour éviter le clignotement ou l'image brisée
+        const img = new Image();
+        img.onload = () => { logoEl.src = logoUrl; };
+        img.src = logoUrl;
+      }
     }
   } catch (_) {}
 }

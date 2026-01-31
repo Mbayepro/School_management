@@ -54,7 +54,9 @@ async function generateBulletins() {
 
     try {
         // 1. Fetch Data
-        const { data: ecole } = await supabase.from('ecoles').select('nom').eq('id', ecoleId).single();
+        const { data: ecole } = await supabase.from('ecoles').select('nom, note_max').eq('id', ecoleId).single();
+        if (ecole && ecole.note_max) noteMax = ecole.note_max;
+
         const { data: classe } = await supabase.from('classes').select('nom, niveau').eq('id', classeId).single();
         const { data: eleves } = await supabase.from('eleves').select('*').eq('classe_id', classeId).eq('actif', true).order('nom');
         

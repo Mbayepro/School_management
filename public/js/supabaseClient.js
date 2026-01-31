@@ -158,12 +158,36 @@ export const db = {
     },
 
     async getClassesByProfesseur(professeurId) {
-        const { data, error } = await supabase
+        // 1. Classes where user is the main professor
+        const { data: mainClasses, error: mainError } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('professeur_id', professeurId);
+            
+        // 2. Classes where user teaches a subject (via enseignements)
+        const { data: subjectClasses, error: subjectError } = await supabase
             .from('enseignements')
             .select('classe_id, classes(*)')
             .eq('professeur_id', professeurId);
-        const classes = data ? data.map(e => e.classes).filter(Boolean) : [];
-        return { data: classes, error };
+            
+        if (mainError && subjectError) return { data: [], error: mainError };
+
+        const classesMap = new Map();
+        
+        // Add main classes
+        if (mainClasses) {
+            mainClasses.forEach(c => classesMap.set(c.id, c));
+        }
+        
+        // Add subject classes
+        if (subjectClasses) {
+            subjectClasses.forEach(e => {
+                if (e.classes) classesMap.set(e.classes.id, e.classes);
+            });
+        }
+
+        const classes = Array.from(classesMap.values()).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+        return { data: classes, error: null };
     },
     
     async assignProfessorByEmail(email) {

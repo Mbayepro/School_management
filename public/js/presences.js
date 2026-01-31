@@ -99,23 +99,57 @@ async function loadMatieresForClasse(classeId) {
   selectedMatiereId = null;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { matiereSelect.innerHTML = '<option value="">-- Choisir une matière --</option>'; return; }
-  const { data } = await supabase
-    .from('enseignements')
-    .select('matiere')
-    .eq('classe_id', classeId)
-    .eq('professeur_id', user.id);
-  const names = Array.from(new Set((data || []).map(r => (r.matiere || '').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
-  matiereSelect.innerHTML = '<option value="">-- Choisir une matière --</option>';
-  if (names.length === 0) {
-    matiereSelect.disabled = true;
-    return;
+
+  // Check if user is main professor for this class
+  let isMainProf = false;
+  try {
+    const { data: classe } = await supabase.from('classes').select('professeur_id').eq('id', classeId).single();
+    if (classe && classe.professeur_id === user.id) isMainProf = true;
+  } catch (e) { console.error("Error checking main prof:", e); }
+
+  let names = [];
+  
+  if (isMainProf) {
+      // Load all subjects for the class
+      const { data } = await supabase.from('matieres').select('nom').eq('classe_id', classeId);
+      names = (data || []).map(m => m.nom).filter(Boolean);
+      
+      // Also check enseignements to be sure we don't miss shared subjects.
+      const { data: ens } = await supabase.from('enseignements').select('matiere').eq('classe_id', classeId);
+      const ensNames = (ens || []).map(r => r.matiere).filter(Boolean);
+      names = [...new Set([...names, ...ensNames])];
+
+  } else {
+      // Load only assigned subjects
+      const { data } = await supabase
+        .from('enseignements')
+        .select('matiere')
+        .eq('classe_id', classeId)
+        .eq('professeur_id', user.id);
+      names = Array.from(new Set((data || []).map(r => (r.matiere || '').trim()).filter(Boolean)));
   }
-  names.forEach(n => {
+
+  names.sort((a,b)=>a.localeCompare(b));
+  
+  matiereSelect.innerHTML = '<option value="">-- Choisir une matière --</option>';
+  
+  // Si aucune matière trouvée (cas primaire ou non configuré), ajouter une option par défaut
+  if (names.length === 0) {
     const opt = document.createElement('option');
-    opt.value = n;
-    opt.textContent = n;
+    opt.value = "Général";
+    opt.textContent = "Général (Présence journalière)";
     matiereSelect.appendChild(opt);
-  });
+    // Auto-select if it's the only option
+    matiereSelect.value = "Général";
+    selectedMatiereId = "Général";
+  } else {
+    names.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = n;
+      matiereSelect.appendChild(opt);
+    });
+  }
   matiereSelect.disabled = false;
 }
 

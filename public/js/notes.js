@@ -225,10 +225,13 @@ let currentEvalId = null;
             if (val === '__CREATE_NEW__') {
                 const name = window.prompt('Nom de la matière');
                 if (name && name.trim()) {
-                    const ensuredId = await ensureMatiere(name.trim(), evalClasse ? evalClasse.value : currentClasseId);
+                    let coef = window.prompt('Coefficient de la matière (ex: 1, 2, 0.5)', '1');
+                    if (!coef || isNaN(parseFloat(coef.replace(',', '.')))) coef = '1';
+                    
+                    const ensuredId = await ensureMatiere(name.trim(), evalClasse ? evalClasse.value : currentClasseId, coef);
                     const opt = document.createElement('option');
                     opt.value = String(ensuredId);
-                    opt.textContent = name.trim();
+                    opt.textContent = `${name.trim()} (Coef: ${coef})`;
                     evalMatiere.appendChild(opt);
                     e.target.value = String(ensuredId);
                 } else {
@@ -237,9 +240,16 @@ let currentEvalId = null;
                 }
             } else if (String(val).startsWith('NOM:')) {
                 const matName = String(val).slice(4);
-                const ensuredId = await ensureMatiere(matName, evalClasse ? evalClasse.value : currentClasseId);
+                // Prompt for coef even if name known, because it might be new for this class context
+                let coef = window.prompt(`Coefficient pour ${matName} dans cette classe ?`, '1');
+                if (!coef || isNaN(parseFloat(coef.replace(',', '.')))) coef = '1';
+
+                const ensuredId = await ensureMatiere(matName, evalClasse ? evalClasse.value : currentClasseId, coef);
                 const opt = Array.from(evalMatiere.options).find(o => o.value === `NOM:${matName}`);
-                if (opt) opt.value = String(ensuredId);
+                if (opt) {
+                    opt.value = String(ensuredId);
+                    opt.textContent = `${matName} (Coef: ${coef})`;
+                }
                 evalMatiere.value = String(ensuredId);
             }
         });
@@ -389,22 +399,30 @@ let currentEvalId = null;
         });
     }
 
-    async function ensureMatiere(nom, classeId) {
-        const name = (nom || '').trim();
-        if (!name) throw new Error('Nom de matière vide');
-        const { data: mats } = await supabase
-            .from('matieres')
-            .select('*')
-            .eq('ecole_id', ecoleId)
-            .or(`classe_id.eq.${classeId},classe_id.is.null`);
+    async function ensureMatiere(name, classeId, coef = 1) {
+        if (!name) return null;
+        if (!classeId) throw new Error("Classe non sélectionnée");
+        
+        // Convert coef to number (handle comma)
+        const numericCoef = parseFloat(String(coef).replace(',', '.')) || 1;
+
+        // 1. Check if exists in matieres table for this class
+        const { data: mats } = await supabase.from('matieres').select('id, nom, coefficient').eq('classe_id', classeId);
         const match = (mats || []).find(m => ((m.nom ?? m.nom_matiere) || '').trim().toLowerCase() === name.toLowerCase());
-        if (match) return match.id;
+        
+        if (match) {
+            if (Math.abs((match.coefficient || 1) - numericCoef) > 0.01) {
+                await supabase.from('matieres').update({ coefficient: numericCoef }).eq('id', match.id);
+            }
+            return match.id;
+        }
+
         let inserted = null;
         let err1 = null;
         try {
             const res1 = await supabase
                 .from('matieres')
-                .insert([{ nom: name, ecole_id: ecoleId, classe_id: classeId }])
+                .insert([{ nom: name, ecole_id: ecoleId, classe_id: classeId, coefficient: numericCoef }])
                 .select()
                 .single();
             if (!res1.error) inserted = res1.data;
@@ -414,7 +432,7 @@ let currentEvalId = null;
             try {
                 const res2 = await supabase
                     .from('matieres')
-                    .insert([{ nom_matiere: name, ecole_id: ecoleId, classe_id: classeId }])
+                    .insert([{ nom_matiere: name, ecole_id: ecoleId, classe_id: classeId, coefficient: numericCoef }])
                     .select()
                     .single();
                 if (!res2.error) inserted = res2.data;

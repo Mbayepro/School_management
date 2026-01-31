@@ -1,5 +1,6 @@
 BEGIN;
 ALTER TABLE public.ecoles ADD COLUMN IF NOT EXISTS note_max INT DEFAULT 20;
+ALTER TABLE public.ecoles ADD COLUMN IF NOT EXISTS heure_limite TEXT DEFAULT '08:00';
 ALTER TABLE public.notes ADD COLUMN IF NOT EXISTS note NUMERIC;
 
 -- Migration des données: copier valeur vers note si note est vide (Safe check)
