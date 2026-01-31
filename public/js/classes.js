@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       submitAssignBtn.addEventListener('click', async () => {
           let email = assignProfEmail.value.trim().toLowerCase();
           const matiere = assignMatiere.value.trim();
+          const coef = parseFloat(document.getElementById('assignCoef')?.value || '1');
           const cid = assignClasseId.value;
 
           if (!email || !cid || !matiere) {
@@ -100,6 +101,29 @@ document.addEventListener('DOMContentLoaded', async () => {
           submitAssignBtn.textContent = 'Ajout...';
 
           try {
+              // 0. Ensure Matiere exists/updates with Coefficient
+              // Check if matiere exists for this class
+              const { data: matData, error: matErr } = await supabase
+                  .from('matieres')
+                  .select('id')
+                  .eq('classe_id', cid)
+                  .ilike('nom', matiere)
+                  .maybeSingle();
+              
+              if (!matData) {
+                  // Create it
+                  const { error: createErr } = await supabase.from('matieres').insert([{
+                      nom: matiere,
+                      classe_id: cid,
+                      ecole_id: ecoleId,
+                      coefficient: coef
+                  }]);
+                  if (createErr) console.warn("Erreur création matière:", createErr);
+              } else {
+                  // Update coef
+                  await supabase.from('matieres').update({ coefficient: coef }).eq('id', matData.id);
+              }
+
               // Use getUserByEmail to get ID
               const { data: userData, error: userErr } = await db.getUserByEmail(email);
 
@@ -125,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                       alert(assignErr.message);
                       return;
                   }
-                  alert('Enseignant ajouté !');
+                  alert('Enseignant ajouté et matière configurée !');
                   openAssignModal(cid, assignProfEmail, assignMatiere, assignClasseId, currentTeachersList, assignProfModal); // Refresh list
                   await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
               }
@@ -165,15 +189,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
   }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    classeMessage.textContent = '';
-    classeMessage.style.display = 'none';
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      classeMessage.textContent = '';
+      classeMessage.style.display = 'none';
 
-    if (!ecoleId) {
-      showError('Impossible de créer une classe: compte non associé à une école.', classeMessage);
-      return;
-    }
+      if (!ecoleId) {
+        showError('Impossible de créer une classe: compte non associé à une école.', classeMessage);
+        return;
+      }
+      
+      const nom = classeNomEl.value.trim();
+      const niveau = classeNiveauEl.value;
+      
+      if (!nom || !niveau) {
+          showError('Veuillez remplir tous les champs.', classeMessage);
+          return;
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const prevBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Création...';
+
+      try {
+          const { error } = await supabase.from('classes').insert([{
+              nom,
+              niveau,
+              ecole_id: ecoleId
+          }]);
+
+          if (error) throw error;
+
+          classeNomEl.value = '';
+          classeMessage.textContent = 'Classe créée avec succès !';
+          classeMessage.className = 'success-message';
+          classeMessage.style.display = 'block';
+          
+          await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
+      } catch (e) {
+          console.error(e);
+          showError('Erreur lors de la création: ' + e.message, classeMessage);
+      } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = prevBtnText;
+      }
+    });
+  }
 
     const nom = classeNomEl.value.trim();
     const niveau = classeNiveauEl.value;

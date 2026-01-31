@@ -1,20 +1,44 @@
 import { supabase } from './supabaseClient.js';
 
 let ecoleId = null;
+let noteMax = 20; // Default value
 
 const init = async () => {
     // Auth check
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return window.location.href = 'index.html';
     
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    if (!profile) return;
-    ecoleId = profile.ecole_id;
+    // Charger la config de l'école pour note_max
+    try {
+        const { data: profile } = await supabase.from('profiles').select('ecole_id').eq('id', user.id).single();
+        if (profile && profile.ecole_id) {
+            ecoleId = profile.ecole_id;
+            const { data: config } = await supabase
+                .from('school_configurations')
+                .select('note_max')
+                .eq('ecole_id', ecoleId)
+                .single();
+            if (config && config.note_max) {
+                noteMax = config.note_max;
+            }
+        }
+    } catch (e) {
+        console.warn("Erreur chargement config:", e);
+    }
 
     await loadClasses();
 
-    const btn = document.getElementById('generateBtn');
-    if (btn) btn.addEventListener('click', generateBulletins);
+    if (btn) btn.addEventListener('click', prepareGeneration);
+    
+    // Modal Listeners
+    const closeBtn = document.getElementById('closeCoefModal');
+    if (closeBtn) closeBtn.addEventListener('click', () => {
+        document.getElementById('coefModal').classList.add('hidden');
+        document.getElementById('status').classList.add('hidden');
+    });
+    
+    const confirmBtn = document.getElementById('confirmCoefBtn');
+    if (confirmBtn) confirmBtn.addEventListener('click', finalizeGeneration);
 };
 
 async function loadClasses() {
@@ -37,7 +61,10 @@ async function loadClasses() {
     });
 }
 
-async function generateBulletins() {
+// Global state for generation flow
+let genContext = null;
+
+async function prepareGeneration() {
     const classeId = document.getElementById('selectClasse').value;
     const periodeVal = document.getElementById('selectPeriode').value; // "1" or "2"
     
@@ -60,13 +87,6 @@ async function generateBulletins() {
         const { data: classe } = await supabase.from('classes').select('nom, niveau').eq('id', classeId).single();
         const { data: eleves } = await supabase.from('eleves').select('*').eq('classe_id', classeId).eq('actif', true).order('nom');
         
-        // Fetch Matieres: try to handle both 'nom' and 'nom_matiere'
-        const { data: matieres } = await supabase
-            .from('matieres')
-            .select('*')
-            .eq('ecole_id', ecoleId)
-            .or(`classe_id.eq.${classeId},classe_id.is.null`);
-            
         // Fetch Evaluations
         const { data: evals } = await supabase
             .from('evaluations')
@@ -85,9 +105,126 @@ async function generateBulletins() {
             .select('*')
             .in('evaluation_id', evalIds);
 
+        // Fetch Matieres referenced in evaluations
+        const matiereIds = [...new Set(evals.map(e => e.matiere_id))];
+        const { data: matieres } = await supabase
+            .from('matieres')
+            .select('*')
+            .in('id', matiereIds)
+            .order('nom');
+
+        // Store context
+        genContext = { ecole, classe, eleves, evals, notes, matieres, periodeVal };
+        
+        // Show Coef Modal
+        showCoefModal(matieres);
+        statusText.textContent = "Vérification des coefficients...";
+        progressBar.style.width = "30%";
+
+    } catch (err) {
+        console.error(err);
+        statusText.textContent = "Erreur: " + err.message;
+        statusText.style.color = "red";
+    }
+}
+
+function showCoefModal(matieres) {
+    const modal = document.getElementById('coefModal');
+    const list = document.getElementById('coefList');
+    list.innerHTML = '';
+    
+    if (!matieres || matieres.length === 0) {
+        list.innerHTML = '<p style="padding:10px;">Aucune matière trouvée.</p>';
+    } else {
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.innerHTML = `
+            <thead>
+                <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                    <th style="padding:10px; text-align:left;">Matière</th>
+                    <th style="padding:10px; width:100px;">Coefficient</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
+        const tbody = table.querySelector('tbody');
+        
+        matieres.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f1f5f9';
+            tr.innerHTML = `
+                <td style="padding:10px;">${m.nom || m.nom_matiere || 'Inconnue'}</td>
+                <td style="padding:10px;">
+                    <input type="number" data-id="${m.id}" value="${m.coefficient || 1}" min="1" step="0.5" 
+                    style="width:80px; padding:6px; border:1px solid #cbd5e1; border-radius:4px;">
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        list.appendChild(table);
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+async function finalizeGeneration() {
+    if (!genContext) return;
+    
+    const modal = document.getElementById('coefModal');
+    const inputs = modal.querySelectorAll('input[data-id]');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    // Update button state
+    const confirmBtn = document.getElementById('confirmCoefBtn');
+    const prevText = confirmBtn.textContent;
+    confirmBtn.textContent = "Mise à jour...";
+    confirmBtn.disabled = true;
+    
+    try {
+        // Update coefficients in DB and Memory
+        const updates = [];
+        inputs.forEach(input => {
+            const id = input.getAttribute('data-id');
+            const newCoef = parseFloat(input.value) || 1;
+            
+            // Update in memory
+            const m = genContext.matieres.find(x => x.id == id);
+            if (m) m.coefficient = newCoef;
+            
+            // Update in DB (parallel)
+            updates.push(supabase.from('matieres').update({ coefficient: newCoef }).eq('id', id));
+        });
+        
+        await Promise.all(updates);
+        
+        // Close modal
+        modal.classList.add('hidden');
+        confirmBtn.textContent = prevText;
+        confirmBtn.disabled = false;
+        
+        // Proceed with generation
         statusText.textContent = "Calcul des moyennes...";
         progressBar.style.width = "50%";
+        
+        await generatePDF(genContext);
+        
+    } catch (e) {
+        console.error(e);
+        alert("Erreur lors de la mise à jour des coefficients: " + e.message);
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = prevText;
+    }
+}
 
+async function generatePDF(ctx) {
+    const { ecole, classe, eleves, evals, notes, matieres, periodeVal } = ctx;
+    const statusDiv = document.getElementById('status');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    try {
         // 2. Process Data
         // Map: EleveID -> { MatiereID -> { notes: [], sum: 0, coef: 0 } }
         const reportData = {}; 
@@ -116,16 +253,14 @@ async function generateBulletins() {
             if (!ev) return;
             
             let matId = ev.matiere_id;
-            // Handle if matiere_id is not in matieres list (should not happen if consistent)
-            // But sometimes logic is weird
             
             let subData = eData.subjects[matId];
             if (!subData) {
-                // Try to find if we missed it
-                // Or maybe create a temporary subject entry
+                // Should not happen with the new fetching logic, but safety fallback
+                const matInfo = matieres?.find(m => m.id === matId);
                 subData = {
-                    name: 'Autre',
-                    coef: 1,
+                    name: matInfo ? (matInfo.nom || matInfo.nom_matiere) : 'Autre',
+                    coef: matInfo ? (parseFloat(matInfo.coefficient) || 1) : 1,
                     notes: [],
                     avg: null
                 };
@@ -163,6 +298,16 @@ async function generateBulletins() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
+        // Load images if available
+        const bucket = supabase.storage.from('school_assets');
+        const logoUrl = ecoleId ? (bucket.getPublicUrl(`${ecoleId}/logo.png`)?.data?.publicUrl) : null;
+        const cachetUrl = ecoleId ? (bucket.getPublicUrl(`${ecoleId}/cachet.png`)?.data?.publicUrl) : null;
+        const signUrl = ecoleId ? (bucket.getPublicUrl(`${ecoleId}/signature.png`)?.data?.publicUrl) : null;
+
+        const logoImg = logoUrl ? await utils.urlToBase64(logoUrl).catch(() => null) : null;
+        const cachetImg = cachetUrl ? await utils.urlToBase64(cachetUrl).catch(() => null) : null;
+        const signImg = signUrl ? await utils.urlToBase64(signUrl).catch(() => null) : null;
+        
         let first = true;
         for (const studData of Object.values(reportData)) {
             if (!first) doc.addPage();
@@ -171,6 +316,12 @@ async function generateBulletins() {
             const s = studData.student;
             
             // Header
+            if (logoImg) {
+                try {
+                    doc.addImage(logoImg, 'PNG', 14, 10, 20, 20);
+                } catch (e) { console.warn("Logo add failed", e); }
+            }
+
             doc.setFontSize(18);
             doc.text((ecole?.nom || "École").toUpperCase(), 105, 20, { align: 'center' });
             
@@ -219,7 +370,24 @@ async function generateBulletins() {
                 doc.text(`Moyenne Générale: ${studData.general.avg.toFixed(2)} / ${noteMax}`, 14, finalY);
                 doc.setFont(undefined, 'normal');
                 
-                doc.text("Le Directeur", 150, finalY + 20);
+                // Observations
+                doc.rect(14, finalY + 10, 180, 20);
+                doc.text("Observations:", 16, finalY + 16);
+                
+                // Signatures
+                const signY = finalY + 40;
+                doc.text("Le Directeur", 150, signY);
+                
+                if (cachetImg) {
+                    try {
+                         doc.addImage(cachetImg, 'PNG', 140, signY + 5, 30, 30);
+                    } catch (e) {}
+                }
+                if (signImg) {
+                    try {
+                        doc.addImage(signImg, 'PNG', 150, signY + 10, 40, 20);
+                    } catch (e) {}
+                }
             }
         }
 

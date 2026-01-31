@@ -142,15 +142,42 @@ async function saveHeureLimite() {
 async function loadAssetsPreview() {
   const bucket = supabase.storage.from('school_assets');
   if (!ecoleId) return;
-  const logoPath = await resolveAssetPath('logo');
-  const cachetPath = await resolveAssetPath('cachet');
-  const signPath = await resolveAssetPath('signature');
+
+  // Optimization: List once to find all assets
+  let fileNames = [];
+  try {
+      const { data: files, error } = await bucket.list(`${ecoleId}`);
+      if (!error && files) {
+          fileNames = files.map(f => f.name);
+      }
+  } catch (e) {
+      console.warn("Could not list assets:", e);
+  }
+
+  const find = (base) => {
+      const exts = ['png','jpg','jpeg','webp'];
+      const ext = exts.find(e => fileNames.includes(`${base}.${e}`));
+      return ext ? `${ecoleId}/${base}.${ext}` : null;
+  };
+
+  const logoPath = find('logo');
+  const cachetPath = find('cachet');
+  const signPath = find('signature');
+
   const logoUrl = logoPath ? bucket.getPublicUrl(logoPath)?.data?.publicUrl : null;
   const cachetUrl = cachetPath ? bucket.getPublicUrl(cachetPath)?.data?.publicUrl : null;
   const signUrl = signPath ? bucket.getPublicUrl(signPath)?.data?.publicUrl : null;
-  if (logoUrl) { previewLogo.src = logoUrl; if (topbarLogo) topbarLogo.src = logoUrl; }
-  if (cachetUrl) previewCachet.src = cachetUrl;
-  if (signUrl) previewSignature.src = signUrl;
+  
+  // Add timestamp to bypass cache
+  const t = new Date().getTime();
+
+  if (logoUrl) { 
+      const url = `${logoUrl}?t=${t}`;
+      if (previewLogo) previewLogo.src = url; 
+      if (topbarLogo) topbarLogo.src = url; 
+  }
+  if (cachetUrl && previewCachet) previewCachet.src = `${cachetUrl}?t=${t}`;
+  if (signUrl && previewSignature) previewSignature.src = `${signUrl}?t=${t}`;
 }
 
 async function uploadLogo() {
@@ -344,8 +371,18 @@ function toPngBlob(file) {
 
 async function resolveAssetPath(baseName) {
   const bucket = supabase.storage.from('school_assets');
-  const { data } = await bucket.list(`${ecoleId}`);
   const exts = ['png','jpg','jpeg','webp'];
-  const found = exts.find(ext => (data || []).some(o => o.name === `${baseName}.${ext}`));
-  return found ? `${ecoleId}/${baseName}.${found}` : null;
+  
+  for (const ext of exts) {
+      const path = `${ecoleId}/${baseName}.${ext}`;
+      const { data } = bucket.getPublicUrl(path);
+      if (data && data.publicUrl) {
+          // Check if it really exists via HEAD request (fast)
+          try {
+              const res = await fetch(data.publicUrl, { method: 'HEAD' });
+              if (res.ok) return path;
+          } catch(e) { continue; }
+      }
+  }
+  return null;
 }

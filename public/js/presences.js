@@ -75,21 +75,62 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadClasses() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return;
-  const { data, error: classesError } = await db.getClassesByProfesseur(user.id);
-  if (classesError) return;
-  classeSelect.innerHTML = `<option value="">-- Choisir une classe --</option>`;
-  data.forEach(c => {
-    classeSelect.innerHTML += `<option value="${c.id}">${c.nom}</option>`;
-    classesMap.set(String(c.id), c);
-  });
-  // Si une seule classe, masquer le sélecteur et mettre le titre "Ma classe"
-  const section = classeSelect.closest('section');
-  const titleEl = section ? section.querySelector('.panel-head h2, h2') : null;
-  if (classeSelect.options.length <= 2) {
-    classeSelect.parentElement.style.display = 'none';
-    if (titleEl) titleEl.textContent = 'Ma classe';
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return;
+    
+    // Check role
+    const { data: profile } = await db.getProfile(user.id);
+    const isDirector = profile && (profile.role === 'directeur' || profile.role === 'director');
+
+    let data = [];
+    let classesError = null;
+
+    if (isDirector) {
+        // Director sees all classes
+        const { data: all, error: err } = await db.getClassesByEcole(profile.ecole_id);
+        data = all;
+        classesError = err;
+    } else {
+        // Professor sees assigned classes
+        const { data: assigned, error: err } = await db.getClassesByProfesseur(user.id);
+        data = assigned;
+        classesError = err;
+    }
+    
+    if (classesError) {
+      console.error("Erreur chargement classes:", classesError);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+       classeSelect.innerHTML = `<option value="">Aucune classe assignée</option>`;
+       return;
+    }
+
+    classeSelect.innerHTML = `<option value="">-- Choisir une classe --</option>`;
+    classesMap.clear();
+    
+    data.forEach(c => {
+      if (c && c.id) {
+          classeSelect.innerHTML += `<option value="${c.id}">${c.nom}</option>`;
+          classesMap.set(String(c.id), c);
+      }
+    });
+    
+    // Si une seule classe, masquer le sélecteur et mettre le titre "Ma classe"
+    const section = classeSelect.closest('section');
+    const titleEl = section ? section.querySelector('.panel-head h2, h2') : null;
+    if (data.length === 1) {
+      classeSelect.parentElement.style.display = 'none';
+      if (titleEl) titleEl.textContent = `Ma classe : ${data[0].nom}`;
+      // Auto-select
+      classeSelect.value = data[0].id;
+      // Trigger change manually
+      classeSelect.dispatchEvent(new Event('change'));
+    }
+  } catch (e) {
+    console.error("Exception loadClasses:", e);
   }
 }
 
@@ -105,6 +146,10 @@ async function loadMatieresForClasse(classeId) {
   try {
     const { data: classe } = await supabase.from('classes').select('professeur_id').eq('id', classeId).single();
     if (classe && classe.professeur_id === user.id) isMainProf = true;
+    
+    // Director also acts as main prof (sees all subjects)
+    const { data: profile } = await db.getProfile(user.id);
+    if (profile && (profile.role === 'directeur' || profile.role === 'director')) isMainProf = true;
   } catch (e) { console.error("Error checking main prof:", e); }
 
   let names = [];
@@ -132,9 +177,17 @@ async function loadMatieresForClasse(classeId) {
   names.sort((a,b)=>a.localeCompare(b));
   
   matiereSelect.innerHTML = '<option value="">-- Choisir une matière --</option>';
+
+  // Always add "Général" for Main Professors or if no subjects found
+  if (isMainProf && !names.includes('Général')) {
+      const opt = document.createElement('option');
+      opt.value = "Général";
+      opt.textContent = "Général (Présence journalière)";
+      matiereSelect.appendChild(opt);
+  }
   
   // Si aucune matière trouvée (cas primaire ou non configuré), ajouter une option par défaut
-  if (names.length === 0) {
+  if (names.length === 0 && !isMainProf) {
     const opt = document.createElement('option');
     opt.value = "Général";
     opt.textContent = "Général (Présence journalière)";
@@ -144,13 +197,25 @@ async function loadMatieresForClasse(classeId) {
     selectedMatiereId = "Général";
   } else {
     names.forEach(n => {
+      if (n === 'Général') return; // Already added
       const opt = document.createElement('option');
       opt.value = n;
       opt.textContent = n;
       matiereSelect.appendChild(opt);
     });
+    // Select first one by default if not empty
+    if(matiereSelect.options.length > 1) { // >1 because of default option "-- Choisir --" or "Général"
+        // Prefer "Général" if available? Or first subject?
+        // Let's default to first available option that is not empty
+        const firstVal = matiereSelect.options[1].value;
+        matiereSelect.value = firstVal;
+        selectedMatiereId = firstVal;
+    }
   }
   matiereSelect.disabled = false;
+  
+  // Trigger check
+  await checkAlreadySaved();
 }
 
 async function loadEleves(classeId) {
@@ -166,6 +231,7 @@ async function loadEleves(classeId) {
       <select data-eleve="${e.id}">
         <option value="present">Présent</option>
         <option value="absent">Absent</option>
+        <option value="retard">Retard</option>
       </select>
     `;
     li.querySelector('select').addEventListener('change', ev => {
@@ -177,7 +243,7 @@ async function loadEleves(classeId) {
 
 async function checkAlreadySaved() {
   const today = new Date().toISOString().split('T')[0];
-  const { data, error } = await db.getPresencesDate(today, selectedClasseId);
+  const { data, error } = await db.getPresencesDate(today, selectedClasseId, selectedMatiereId);
   if (error) return;
   if (data && data.length > 0) {
     saveBtn.disabled = true;
@@ -188,7 +254,7 @@ async function checkAlreadySaved() {
       errorEl.style.display = 'none';
     }
     if (statusPill) {
-      statusPill.textContent = 'Présences déjà enregistrées aujourd’hui';
+      statusPill.textContent = 'Présences déjà enregistrées';
       statusPill.classList.remove('hidden', 'success', 'urgent', 'alert');
       statusPill.classList.add('alert');
     }
@@ -211,20 +277,34 @@ async function checkAlreadySaved() {
 
 async function savePresences() {
   const today = new Date().toISOString().split('T')[0];
-  for (const eleveId in presences) {
-    await db.savePresence({
-      eleve_id: eleveId,
-      date: today,
-      statut: presences[eleveId]
-    });
+  const mat = selectedMatiereId || "Général";
+  
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Enregistrement...";
+  
+  try {
+      for (const eleveId in presences) {
+        await db.savePresence({
+          eleve_id: eleveId,
+          date: today,
+          statut: presences[eleveId],
+          matiere: mat,
+          classe_id: selectedClasseId
+        });
+      }
+      if (statusPill) {
+        statusPill.textContent = 'Présences enregistrées';
+        statusPill.classList.remove('hidden', 'alert', 'urgent');
+        statusPill.classList.add('success');
+      }
+      showToast('success', 'Présences enregistrées');
+      await checkAlreadySaved();
+  } catch(e) {
+      console.error(e);
+      showToast('error', 'Erreur lors de l\'enregistrement');
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Réessayer';
   }
-  if (statusPill) {
-    statusPill.textContent = 'Présences enregistrées';
-    statusPill.classList.remove('hidden', 'alert', 'urgent');
-    statusPill.classList.add('success');
-  }
-  showToast('success', 'Présences enregistrées');
-  await checkAlreadySaved();
 }
 
 function showToast(type, text) {

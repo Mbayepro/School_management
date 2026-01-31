@@ -1,4 +1,4 @@
-import { db, auth, utils, supabase } from './supabaseClient.js';
+import { db, utils, supabase } from './supabaseClient.js';
 
 let currentEcoleId = null;
 let currentEcole = null;
@@ -7,7 +7,7 @@ let allPayments = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Auth Check
-    const { user, error } = await auth.getCurrentUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
         window.location.href = 'login.html';
         return;
@@ -77,7 +77,7 @@ async function loadData() {
     }
 
     allEleves = elevesRes.data || [];
-    allPayments = paiementsRes.data || [];
+    allPayments = paiementsRes.data || []; // Even if error, default to empty to allow retry/UI render
 
     renderList();
     updateSummary();
@@ -85,22 +85,25 @@ async function loadData() {
 
 function updateSummary() {
     // Calculate totals
-    // We only know amount for PAID students.
     const totalPaid = allPayments
         .filter(p => p.statut === 'paye')
         .reduce((sum, p) => sum + (Number(p.montant) || 0), 0);
     
     const paidCount = allPayments.filter(p => p.statut === 'paye').length;
     const totalStudents = allEleves.length;
+    // Unpaid is total students minus paid (approx)
+    // Note: If a student pays 0, they are paid. If no record, they are unpaid.
     const unpaidCount = totalStudents - paidCount;
 
-    document.getElementById('totalPaid').textContent = totalPaid.toLocaleString('fr-FR') + ' FCFA';
-    // We can't know total unpaid amount easily without fee info, so show count or estimate
-    // Let's show "X élèves" for Unpaid
-    document.getElementById('totalUnpaid').textContent = `${unpaidCount} élèves`;
+    const totalPaidEl = document.getElementById('totalPaid');
+    const totalUnpaidEl = document.getElementById('totalUnpaid');
+    const recoveryRateEl = document.getElementById('recoveryRate');
+
+    if (totalPaidEl) totalPaidEl.textContent = totalPaid.toLocaleString('fr-FR') + ' FCFA';
+    if (totalUnpaidEl) totalUnpaidEl.textContent = `${Math.max(0, unpaidCount)} élèves`;
     
     const rate = totalStudents > 0 ? Math.round((paidCount / totalStudents) * 100) : 0;
-    document.getElementById('recoveryRate').textContent = `${rate}%`;
+    if (recoveryRateEl) recoveryRateEl.textContent = `${rate}%`;
 }
 
 function renderList() {
@@ -112,44 +115,59 @@ function renderList() {
     const search = document.getElementById('searchFilter').value.toLowerCase();
     const month = document.getElementById('monthFilter').value;
 
+    if (allEleves.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center; padding:20px;">Aucun élève dans l\'école.</div>';
+        return;
+    }
+
     // Merge Data
     const rows = allEleves.map(eleve => {
         const payment = allPayments.find(p => p.eleve_id === eleve.id);
         const isPaid = payment && payment.statut === 'paye';
-        return { eleve, payment, isPaid };
+        const isRelance = payment && payment.statut === 'relance';
+        return { eleve, payment, isPaid, isRelance };
     });
 
     // Filter
     const filtered = rows.filter(row => {
-        if (classId !== 'all' && row.eleve.classe_id !== classId) return false;
+        if (classId !== 'all' && String(row.eleve.classe_id) !== String(classId)) return false;
+        
         if (status === 'paid' && !row.isPaid) return false;
         if (status === 'unpaid' && row.isPaid) return false;
+        if (status === 'relance' && !row.isRelance) return false; // Add specific filter support if needed
+        
         const name = `${row.eleve.prenom} ${row.eleve.nom}`.toLowerCase();
         if (search && !name.includes(search)) return false;
         return true;
     });
 
     if (filtered.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">Aucun élève trouvé.</div>';
+        listEl.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">Aucun élève trouvé pour ces critères.</div>';
         return;
     }
 
-    // Sort: Unpaid first
-    filtered.sort((a, b) => (a.isPaid === b.isPaid) ? 0 : a.isPaid ? 1 : -1);
+    // Sort: Unpaid first, then by name
+    filtered.sort((a, b) => {
+        if (a.isPaid === b.isPaid) return (a.eleve.nom || '').localeCompare(b.eleve.nom || '');
+        return a.isPaid ? 1 : -1;
+    });
 
     filtered.forEach(row => {
-        const { eleve, payment, isPaid } = row;
+        const { eleve, payment, isPaid, isRelance } = row;
         
         const card = document.createElement('div');
         card.className = 'payment-card';
         
-        const statusHtml = isPaid 
-            ? `<span class="payment-status status-paid">PAYÉ (${(payment.montant||0).toLocaleString()} F)</span>` 
-            : `<span class="payment-status status-unpaid">NON PAYÉ</span>`;
+        let statusHtml = '';
+        if (isPaid) {
+            statusHtml = `<span class="payment-status status-paid">PAYÉ (${(payment.montant||0).toLocaleString()} F)</span>`;
+        } else if (isRelance) {
+             statusHtml = `<span class="payment-status" style="background:#f59e0b; color:white;">RELANCÉ</span>`;
+        } else {
+            statusHtml = `<span class="payment-status status-unpaid">NON PAYÉ</span>`;
+        }
 
         // WhatsApp Link
-        // Format: https://wa.me/221770000000?text=...
-        // Need to clean phone number. Assume Senegal (+221).
         let phone = eleve.tel_parent ? eleve.tel_parent.replace(/[^0-9]/g, '') : '';
         if (phone && !phone.startsWith('221') && phone.length === 9) phone = '221' + phone;
         
@@ -159,7 +177,7 @@ function renderList() {
             : '#';
         
         const waBtn = (!isPaid && phone) 
-            ? `<a href="${waLink}" target="_blank" class="btn btn-sm btn-whatsapp" style="text-decoration:none; padding:6px 12px; border-radius:6px;">
+            ? `<a href="${waLink}" target="_blank" onclick="markRelance('${eleve.id}')" class="btn btn-sm btn-whatsapp" style="text-decoration:none; padding:6px 12px; border-radius:6px;">
                  <span>📱 Relancer</span>
                </a>` 
             : '';
@@ -190,6 +208,33 @@ function renderList() {
         listEl.appendChild(card);
     });
 }
+
+// Mark as relance
+window.markRelance = async (eleveId) => {
+    // We update status to 'relance' if not paid
+    // This allows tracking relances without marking paid
+    const month = document.getElementById('monthFilter').value;
+    const payment = allPayments.find(p => p.eleve_id === eleveId);
+    
+    if (payment && payment.statut === 'paye') return; // Don't overwrite paid
+    
+    // Optimistic update
+    const pIndex = allPayments.findIndex(p => p.eleve_id === eleveId);
+    if (pIndex >= 0) {
+        allPayments[pIndex].statut = 'relance';
+    } else {
+        allPayments.push({ eleve_id: eleveId, mois: month, statut: 'relance', montant: 0 });
+    }
+    renderList();
+    
+    await db.upsertPaiement({
+        eleve_id: eleveId,
+        mois: month,
+        statut: 'relance',
+        montant: 0
+    });
+    // Silent update
+};
 
 // Make global
 window.renderList = renderList;

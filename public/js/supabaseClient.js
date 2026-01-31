@@ -159,18 +159,22 @@ export const db = {
 
     async getClassesByProfesseur(professeurId) {
         // 1. Classes where user is the main professor
+        // Use specific columns to avoid RLS issues with select(*)
         const { data: mainClasses, error: mainError } = await supabase
             .from('classes')
-            .select('*')
+            .select('id, nom, niveau, ecole_id, professeur_id')
             .eq('professeur_id', professeurId);
             
         // 2. Classes where user teaches a subject (via enseignements)
         const { data: subjectClasses, error: subjectError } = await supabase
             .from('enseignements')
-            .select('classe_id, classes(*)')
+            .select('classe_id, classes(id, nom, niveau, ecole_id)')
             .eq('professeur_id', professeurId);
             
-        if (mainError && subjectError) return { data: [], error: mainError };
+        if (mainError && subjectError) {
+             console.error("Error fetching classes:", mainError, subjectError);
+             return { data: [], error: mainError };
+        }
 
         const classesMap = new Map();
         
@@ -227,7 +231,7 @@ export const db = {
     },
 
     // Présences
-    async getPresencesDate(date, classeId) {
+    async getPresencesDate(date, classeId, matiere = null) {
         // Récupérer les élèves de la classe
         const { data: eleves, error: elevesError } = await this.getElevesByClasse(classeId);
         
@@ -242,12 +246,17 @@ export const db = {
         
         // Récupérer les présences pour les élèves de cette classe
         const eleveIds = eleves.map(e => e.id);
-        const { data, error } = await supabase
+        let query = supabase
             .from('presences')
             .select('*')
             .eq('date', date)
             .in('eleve_id', eleveIds);
             
+        if (matiere && matiere !== 'Général') {
+            query = query.eq('matiere', matiere);
+        }
+            
+        const { data, error } = await query;
         return { data, error };
     },
 
@@ -265,11 +274,11 @@ export const db = {
             marque_par: user.id
         };
         
+        // Try to include matiere in uniqueness check if possible, otherwise rely on DB constraint
+        // We remove 'onConflict' arg to let Supabase/Postgres handle it based on Primary Key or Unique Constraint
         const { data, error } = await supabase
             .from('presences')
-            .upsert([presenceWithUser], {
-                onConflict: 'eleve_id,date'
-            })
+            .upsert([presenceWithUser]) 
             .select();
         return { data, error };
     },
