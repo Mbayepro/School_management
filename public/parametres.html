@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Paramètres – School Management</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="stylesheet" href="css/dashboard-directeur.css?v=force"/>
+  <link rel="stylesheet" href="css/style.css?v=force"/>
+  <script src="js/kill-sw.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.svg" alt="Logo" class="nav-logo" id="topbarLogo">
+      <span class="app">School Management</span>
+      <span class="role">Directeur</span>
+    </div>
+    <div class="top-actions">
+      <a href="dashboard-directeur.html" class="btn ghost">Retour</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="welcome-section">
+      <h1>Paramètres de l'Établissement</h1>
+      <p class="subtitle">Centralisez l’identité visuelle et les informations de votre école.</p>
+      <p id="error-message" class="muted" style="display:none;"></p>
+    </div>
+
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Identité Visuelle</h2>
+      </header>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <label style="flex:1; min-width:280px;">
+          Logo de l'école (PNG recommandé)
+          <input type="file" id="inputLogo" accept="image/*" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px;">
+        </label>
+        <div style="display:flex; align-items:flex-end; gap:8px;">
+          <button id="btnUploadLogo" class="btn">Enregistrer le logo</button>
+          <button id="btnDeleteLogo" class="btn danger">Supprimer le logo</button>
+        </div>
+      </div>
+      <div style="display:flex; gap:16px; align-items:center; margin-top:12px;">
+        <div style="text-align:center;">
+          <div class="muted" style="font-size:12px;">Aperçu logo</div>
+          <img id="previewLogo" src="" alt="Logo" style="width:140px; height:140px; object-fit:contain; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+        </div>
+        <label style="flex:1; min-width:220px;">
+          Couleur principale de l'école
+          <input type="color" id="colorPicker" value="#2563eb" style="width:120px; height:40px; padding:0; border:none; background:none;">
+        </label>
+        <div style="display:flex; align-items:flex-end;">
+          <button id="btnSaveTheme" class="btn primary">Appliquer la couleur</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Certification (Cachet & Signature)</h2>
+      </header>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <label style="flex:1; min-width:280px;">
+          Cachet de l'école (PNG)
+          <input type="file" id="inputCachet" accept="image/*" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px;">
+        </label>
+        <label style="flex:1; min-width:280px;">
+          Signature du Directeur (PNG)
+          <input type="file" id="inputSignature" accept="image/*" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px;">
+        </label>
+        <div style="display:flex; align-items:flex-end; gap:8px;">
+          <button id="btnUploadAssets" class="btn">Enregistrer</button>
+          <button id="btnDeleteCachet" class="btn danger">Supprimer cachet</button>
+          <button id="btnDeleteSignature" class="btn danger">Supprimer signature</button>
+        </div>
+      </div>
+      <div style="display:flex; gap:16px; align-items:center; margin-top:12px;">
+        <div style="text-align:center;">
+          <div class="muted" style="font-size:12px;">Aperçu cachet</div>
+          <img id="previewCachet" src="" alt="Cachet" style="width:120px; height:120px; object-fit:contain; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+        </div>
+        <div style="text-align:center;">
+          <div class="muted" style="font-size:12px;">Aperçu signature</div>
+          <img id="previewSignature" src="" alt="Signature" style="width:180px; height:120px; object-fit:contain; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Informations de l'Établissement</h2>
+      </header>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:12px;">
+        <label>
+          Nom de l'école
+          <input type="text" id="ecoleNom" placeholder="Nom" />
+        </label>
+        <label>
+          Adresse
+          <input type="text" id="ecoleAdresse" placeholder="Adresse" />
+        </label>
+        <label>
+          Téléphone
+          <input type="text" id="ecoleTelephone" placeholder="Téléphone" />
+        </label>
+        <label>
+          Email
+          <input type="email" id="ecoleEmail" placeholder="Email de contact" />
+        </label>
+      </div>
+      <div style="margin-top:12px;">
+        <button id="btnSaveEcole" class="btn primary">Sauvegarder les informations</button>
+        <span id="saveMessage" class="muted" style="display:none; margin-left:8px;"></span>
+      </div>
+    </section>
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Système de notation</h2>
+      </header>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <label>
+          Note maximale
+          <select id="noteMaxSelect" style="padding:8px; border:1px solid #cbd5e1; border-radius:6px;">
+            <option value="20">/20</option>
+            <option value="10">/10</option>
+          </select>
+        </label>
+        <button id="btnSaveNoteMax" class="btn primary">Enregistrer</button>
+        <span id="noteMaxMsg" class="muted" style="display:none; margin-left:8px;"></span>
+      </div>
+    </section>
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Gestion des retards</h2>
+      </header>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <label>
+          Heure limite pour présences
+          <select id="heureLimiteSelect" style="padding:8px; border:1px solid #cbd5e1; border-radius:6px;">
+            <option value="07:30">07:30</option>
+            <option value="08:00" selected>08:00</option>
+            <option value="08:30">08:30</option>
+            <option value="09:00">09:00</option>
+          </select>
+        </label>
+        <button id="btnSaveHeureLimite" class="btn primary">Enregistrer</button>
+        <span id="heureLimiteMsg" class="muted" style="display:none; margin-left:8px;"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/vendor/supabase.min.js"></script>
+  <script type="module" src="js/role-guard.js?v=force"></script>
+  <script type="module" src="js/auth.js?v=force"></script>
+  <script type="module" src="js/parametres.js?v=v1"></script>
+</body>
+</html>

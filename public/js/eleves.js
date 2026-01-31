@@ -64,6 +64,14 @@ const init = async () => {
       if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportExcel);
       if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportPdf);
 
+      // Import Excel
+      const importExcelBtn = document.getElementById('importExcelBtn');
+      const importExcelInput = document.getElementById('importExcelInput');
+      if (importExcelBtn && importExcelInput) {
+          importExcelBtn.addEventListener('click', () => importExcelInput.click());
+          importExcelInput.addEventListener('change', handleExcelImport);
+      }
+
       if (addEleveBtn && eleveModal) addEleveBtn.addEventListener('click', () => {
         populateClasseSelect();
         if (formMessage) { formMessage.textContent = ""; formMessage.style.display = "none"; }
@@ -169,10 +177,10 @@ const init = async () => {
       if (photoUpload) {
         photoUpload.addEventListener('change', async (e) => {
           const file = e.target.files?.[0];
-          if (!file || !selectedEleve || !idCardPreview) return;
-          const url = URL.createObjectURL(file);
-          const img = idCardPreview.querySelector('.id-card-photo');
-          if (img) img.src = url;
+          if (!file || !selectedEleve) return;
+          if (!isDirector) { alert('Accès réservé au directeur'); e.target.value = ''; return; }
+          await uploadElevePhoto(file, selectedEleve);
+          e.target.value = '';
         });
       }
 
@@ -268,6 +276,7 @@ const init = async () => {
       const { data: profile } = await db.getProfile(user.id);
       const r = ((profile?.role) || '').trim().toLowerCase();
       // if (!profile || (r !== 'directeur' && r !== 'director')) return; // Role check
+      const isDirector = (r === 'directeur' || r === 'director');
 
       ecoleId = profile?.ecole_id || null;
       
@@ -365,11 +374,17 @@ const init = async () => {
           const badge = classeInfo ? `<span class="pill" style="margin-right:8px;">${classeInfo.nom} • ${classeInfo.niveau || 'N/A'}</span>` : '';
           
           const actionsDiv = document.createElement('div');
-          actionsDiv.innerHTML = `${badge} ${phone} <button class="btn btn-sm primary" data-action="idcard">Carte</button> <button class="btn btn-sm" data-action="edit" style="margin-left:6px;">Modifier</button>`;
+          actionsDiv.innerHTML = `${badge} ${phone} <button class="btn btn-sm primary" data-action="idcard">Carte</button> <button class="btn btn-sm" data-action="edit" style="margin-left:6px;">Modifier</button> <button class="btn btn-sm" data-action="uploadphoto" style="margin-left:6px;">Changer la photo</button>`;
           li.appendChild(actionsDiv);
 
           actionsDiv.querySelector('[data-action="idcard"]').addEventListener('click', () => openIdCard(e));
           actionsDiv.querySelector('[data-action="edit"]').addEventListener('click', () => openEditModal(e));
+          actionsDiv.querySelector('[data-action="uploadphoto"]').addEventListener('click', () => {
+            if (!isDirector) { alert('Accès réservé au directeur'); return; }
+            selectedEleve = e;
+            const input = document.getElementById('photoUpload');
+            if (input) input.click();
+          });
           elevesList.appendChild(li);
         });
         updatePrintButtonCount();
@@ -389,6 +404,88 @@ const init = async () => {
           rows = rows.filter(e => (`${e.prenom || ''} ${e.nom || ''}`.toLowerCase().includes(q)));
         }
         return rows;
+      }
+
+      async function handleExcelImport(e) {
+          const file = e.target.files?.[0];
+          if (!file) return;
+
+          try {
+              const data = await file.arrayBuffer();
+              const workbook = XLSX.read(data, { type: 'array' });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+              if (jsonData.length === 0) {
+                  alert("Le fichier semble vide.");
+                  return;
+              }
+
+              if (!confirm(`Voulez-vous importer ${jsonData.length} élèves ?\nAssurez-vous que les colonnes sont : Nom, Prénom, Classe, Téléphone.`)) {
+                  return;
+              }
+
+              let addedCount = 0;
+              let errors = [];
+
+              // Pre-fetch class map for name lookup
+              const classMap = new Map(); // Name -> ID
+              classesById.forEach((val, key) => {
+                  classMap.set(val.nom.toLowerCase().trim(), key);
+              });
+
+              for (const row of jsonData) {
+                  // Expected columns: Nom, Prénom, Classe, Téléphone (optional)
+                  const nom = (row['Nom'] || row['nom'] || '').trim();
+                  const prenom = (row['Prénom'] || row['Prenom'] || row['prenom'] || '').trim();
+                  const classeName = (row['Classe'] || row['classe'] || '').trim();
+                  const tel = (row['Téléphone'] || row['Telephone'] || row['tel'] || '').trim();
+
+                  if (!nom || !prenom || !classeName) {
+                      errors.push(`Ligne ignorée (données manquantes): ${nom} ${prenom}`);
+                      continue;
+                  }
+
+                  const classeId = classMap.get(classeName.toLowerCase());
+                  if (!classeId) {
+                      errors.push(`Classe introuvable pour: ${nom} ${prenom} (Classe: ${classeName})`);
+                      continue;
+                  }
+
+                  // Insert
+                  const { error } = await supabase.from('eleves').insert([{
+                      nom,
+                      prenom,
+                      classe_id: classeId,
+                      tel_parent: tel,
+                      actif: true
+                  }]);
+
+                  if (error) {
+                      errors.push(`Erreur sauvegarde ${nom} ${prenom}: ${error.message}`);
+                  } else {
+                      addedCount++;
+                  }
+              }
+
+              let msg = `${addedCount} élèves importés avec succès.`;
+              if (errors.length > 0) {
+                  msg += `\n\n${errors.length} erreurs:\n` + errors.slice(0, 5).join('\n') + (errors.length > 5 ? '\n...' : '');
+              }
+              alert(msg);
+              
+              // Reload
+              await loadData();
+              renderElevesList();
+              if (window.updateFilteredMetrics) updateFilteredMetrics(filterClasse?.value || '', filterNiveau?.value || '');
+
+          } catch (err) {
+              console.error(err);
+              alert("Erreur lors de l'importation: " + err.message);
+          } finally {
+              e.target.value = ''; // Reset input
+          }
       }
 
       function exportExcel() {
@@ -434,6 +531,35 @@ const init = async () => {
       window.populateClasseFilter = populateClasseFilter;
       window.populatefilter = populateClasseFilter;
 
+      function getDefaultAvatarDataUrl() {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="200" viewBox="0 0 160 200">
+          <rect width="160" height="200" fill="#e2e8f0"/>
+          <circle cx="80" cy="70" r="35" fill="#94a3b8"/>
+          <rect x="25" y="120" width="110" height="60" rx="30" fill="#94a3b8"/>
+        </svg>`;
+        return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+      }
+
+      function getElevePhotoUrl(eleve) {
+        // Convention stricte: school_photos/{ecole_id}/{eleve_id}.jpg
+        const path = `${ecoleId}/${eleve.id}.jpg`;
+        const { data } = supabase.storage.from('school_photos').getPublicUrl(path);
+        return data?.publicUrl || null;
+      }
+
+      function populateClasseFilter() {
+        if (!filterClasse) return;
+        const selected = filterClasse.value;
+        filterClasse.innerHTML = '<option value="">Toutes</option>';
+        Array.from(classesById.values()).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = c.nom;
+          filterClasse.appendChild(opt);
+        });
+        if (selected) filterClasse.value = selected;
+      }
+
       function generateCardHtml(eleve) {
         const card = document.createElement('div');
         card.className = 'id-card-preview';
@@ -442,7 +568,7 @@ const init = async () => {
         
         card.innerHTML = `
           <div class="id-card-left">
-            <img class="id-card-photo" alt="Photo élève">
+            <img class="id-card-photo" data-eleve-id="${eleve.id}" alt="Photo élève">
             <div class="id-card-qr" id="idCardQR-${eleve.id}"></div>
           </div>
           <div class="id-card-right">
@@ -452,6 +578,13 @@ const init = async () => {
             <div class="id-card-info"><strong>ID:</strong> ${eleve.id}</div>
           </div>
         `;
+        // Photo
+        const img = card.querySelector('.id-card-photo');
+        if (img) {
+          const url = getElevePhotoUrl(eleve);
+          img.src = url || getDefaultAvatarDataUrl();
+          img.onerror = () => { img.onerror = null; img.src = getDefaultAvatarDataUrl(); };
+        }
         
         setTimeout(() => {
           const qrEl = card.querySelector(`#idCardQR-${eleve.id}`);
@@ -463,13 +596,31 @@ const init = async () => {
         return card;
       }
 
+      async function waitForImages(container) {
+        const imgs = Array.from(container.querySelectorAll('img'));
+        if (imgs.length === 0) return;
+        await new Promise((resolve) => {
+          let remaining = imgs.length;
+          const done = () => { remaining -= 1; if (remaining <= 0) resolve(); };
+          imgs.forEach((img) => {
+            if (img.complete && img.naturalWidth !== 0) {
+              done();
+            } else {
+              const onLoad = () => { img.removeEventListener('load', onLoad); img.removeEventListener('error', onLoad); done(); };
+              img.addEventListener('load', onLoad);
+              img.addEventListener('error', onLoad);
+            }
+          });
+        });
+      }
+
       function openIdCard(eleve) {
         selectedEleve = eleve;
         if (!idCardModal || !idCardPreview) return;
         const classeNom = classesById.get(eleve.classe_id)?.nom || 'N/A';
         idCardPreview.innerHTML = `
           <div class="id-card-left">
-            <img class="id-card-photo" alt="Photo élève">
+            <img class="id-card-photo" data-eleve-id="${eleve.id}" alt="Photo élève">
             <div class="id-card-qr" id="idCardQR"></div>
           </div>
           <div class="id-card-right">
@@ -479,6 +630,13 @@ const init = async () => {
             <div class="id-card-info"><strong>ID:</strong> ${eleve.id}</div>
           </div>
         `;
+      // Photo dans le modal
+      const img = idCardPreview.querySelector('.id-card-photo');
+      if (img) {
+        const url = getElevePhotoUrl(eleve);
+        img.src = url || getDefaultAvatarDataUrl();
+        img.onerror = () => { img.onerror = null; img.src = getDefaultAvatarDataUrl(); };
+      }
       try {
         const qrEl = idCardPreview.querySelector('#idCardQR');
         if (qrEl && window.QRCode) {
@@ -486,6 +644,30 @@ const init = async () => {
         }
       } catch (_) {}
         idCardModal.classList.remove('hidden');
+      }
+
+      async function uploadElevePhoto(file, eleve) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) { alert('Session expirée'); return; }
+          const path = `${ecoleId}/${eleve.id}.jpg`;
+          const { error } = await supabase.storage
+            .from('school_photos')
+            .upload(path, file, { upsert: true, cacheControl: '3600', contentType: file.type || 'image/jpeg' });
+          if (error) { alert('Erreur upload photo: ' + error.message); return; }
+          const pub = supabase.storage.from('school_photos').getPublicUrl(path);
+          const freshUrl = (pub?.data?.publicUrl || '') + `?t=${Date.now()}`;
+          const imgModal = idCardPreview ? idCardPreview.querySelector(`.id-card-photo[data-eleve-id="${eleve.id}"]`) : null;
+          if (imgModal) imgModal.src = freshUrl;
+          const printableContainer = document.getElementById('printableCardsContainer');
+          if (printableContainer) {
+            const imgs = printableContainer.querySelectorAll(`.id-card-photo[data-eleve-id="${eleve.id}"]`);
+            imgs.forEach(i => { i.src = freshUrl; });
+          }
+          alert('Photo mise à jour');
+        } catch (err) {
+          alert('Erreur: ' + (err?.message || 'Upload'));
+        }
       }
 
       function openEditModal(eleve) {

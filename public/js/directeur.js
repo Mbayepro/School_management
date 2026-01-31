@@ -1,6 +1,6 @@
 import { supabase, db } from './supabaseClient.js';
 import CONFIG from './config.js';
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const valClasses = document.getElementById('valClasses');
 const valEleves = document.getElementById('valEleves');

@@ -72,7 +72,7 @@
 
 .scan-result {
     width: 100%;
-    padding: 16px;
+    padding: 24px;
     border-radius: 12px;
     text-align: center;
     display: none;
@@ -80,32 +80,57 @@
 
 .scan-result.success {
     display: block;
-    background-color: #dcfce7;
-    color: #166534;
-    border: 1px solid #bbf7d0;
+    background-color: #22c55e; /* Vert vif */
+    color: #052e1d;
+    border: 2px solid #16a34a;
 }
 
 .scan-result.error {
     display: block;
-    background-color: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
+    background-color: #ef4444; /* Rouge vif */
+    color: #3b0a0a;
+    border: 2px solid #dc2626;
 }
 
 .student-info h4 {
-    margin: 0 0 4px 0;
-    font-size: 1.2rem;
+    margin: 0 0 8px 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
 }
 
 .student-info p {
     margin: 0;
     opacity: 0.9;
+    font-size: 1rem;
 }
 
 .scan-status-icon {
-    font-size: 2rem;
-    margin-bottom: 8px;
+    font-size: 2.4rem;
+    margin-bottom: 12px;
     display: block;
+}
+
+.student-photo {
+    width: 120px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.7);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    margin-bottom: 12px;
+}
+
+.scan-layout {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+}
+
+.scan-text-block {
+    text-align: left;
+    color: #ffffff;
 }
 
 @keyframes fadeIn {

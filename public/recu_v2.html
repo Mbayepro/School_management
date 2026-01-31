@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Reçu de Paiement</title>
   <meta name="theme-color" content="#000000" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <script src="js/kill-sw.js"></script>
   <style>
     body { font-family: 'Courier New', monospace; padding: 20px; background: #fff; color: #000; }
     .receipt { border: 2px dashed #000; padding: 20px; max-width: 420px; margin: 0 auto; }
@@ -13,6 +17,11 @@
     .row { display: flex; justify-content: space-between; margin: 10px 0; }
     .total { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 10px 0; font-weight: bold; margin-top: 20px; }
     .footer { text-align: center; margin-top: 30px; font-size: 12px; }
+    .brand { display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:8px; }
+    .brand img { width:28px; height:28px; object-fit:contain; }
+    .stamp { display:flex; justify-content:space-between; align-items:center; margin-top:16px; }
+    .stamp img { object-fit:contain; }
+    .sign { text-align:right; font-size:12px; }
     @media print {
       @page { size: A5; margin: 10mm; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -29,20 +38,37 @@
         nom: params.get('nom') || '',
         classe: params.get('classe') || '',
         mois: params.get('mois') || '',
+        mois_text: params.get('mois_text') || '',
         montant: params.get('montant') || '0',
         ecole: params.get('ecole') || 'École',
         date: params.get('date') || new Date().toLocaleDateString('fr-FR')
       };
+      const color = params.get('color') || '#2563eb';
+      const logo = params.get('logo') || '';
+      const cachet = params.get('cachet') || '';
+      const signature = params.get('signature') || '';
       const montantFmt = Number(data.montant || 0).toLocaleString('fr-FR');
+      const moisAffiche = data.mois_text || data.mois;
+      const numero = params.get('numero') || '';
+      const styleTitle = `style="color:${color}"`;
       const html = `
-        <h1>REÇU DE PAIEMENT</h1>
+        <div class="brand">
+          ${logo ? `<img src="${logo}" alt="Logo">` : ''}
+          <h1 ${styleTitle}>REÇU DE PAIEMENT</h1>
+        </div>
         <div class="school-name">${data.ecole}</div>
+        ${numero ? `<div style="text-align:center; margin-bottom:8px;">${numero}</div>` : ''}
         <div style="text-align:center; margin-bottom:20px;">${data.date}</div>
         <div class="row"><span>Élève:</span><strong>${data.prenom} ${data.nom}</strong></div>
         <div class="row"><span>Classe:</span><span>${data.classe}</span></div>
-        <div class="row"><span>Mois:</span><span>${data.mois}</span></div>
+        <div class="row"><span>Mois:</span><span>${moisAffiche}</span></div>
         <div class="total row"><span>MONTANT PAYÉ:</span><span>${montantFmt} FCFA</span></div>
-        <div class="footer"><p>Merci pour votre paiement.</p><p>Cachet de l'école</p></div>
+        <div class="stamp">
+          ${cachet ? `<img src="${cachet}" alt="Cachet" width="80" height="80">` : '<span></span>'}
+          ${signature ? `<img src="${signature}" alt="Signature" width="120" height="60">` : '<span></span>'}
+        </div>
+        <div class="sign">Le Directeur</div>
+        <div class="footer"><p>Merci pour votre paiement.</p></div>
       `;
       const el = document.getElementById('receipt');
       if (el) el.innerHTML = html;

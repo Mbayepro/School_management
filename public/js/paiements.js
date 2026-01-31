@@ -1,4 +1,4 @@
-import { db, auth, utils } from './supabaseClient.js';
+import { db, auth, utils, supabase } from './supabaseClient.js';
 
 let currentEcoleId = null;
 let currentEcole = null;
@@ -203,20 +203,38 @@ window.printReceipt = function(eleveId) {
     const dateStr = new Date().toLocaleDateString('fr-FR');
     const montant = (payment.montant || 0);
     const mois = document.getElementById('monthFilter').value;
+    const parts = mois.split('-');
+    const year = parts[0];
+    const m = parseInt(parts[1] || '1', 10) || 1;
+    const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const moisText = `${months[m - 1]} ${year}`;
+    const color = currentEcole?.couleur || '#2563eb';
+    const bucket = supabase.storage.from('school_assets');
+    const logoUrl = currentEcoleId ? (bucket.getPublicUrl(`${currentEcoleId}/logo.png`)?.data?.publicUrl || '') : '';
+    const cachetUrl = currentEcoleId ? (bucket.getPublicUrl(`${currentEcoleId}/cachet.png`)?.data?.publicUrl || '') : '';
+    const signUrl = currentEcoleId ? (bucket.getPublicUrl(`${currentEcoleId}/signature.png`)?.data?.publicUrl || '') : '';
 
     // Build URL to dedicated receipt page to avoid cache issues and Trusted Types
+    const numero = payment?.numero || '';
     const params = new URLSearchParams({
         prenom: row.prenom || '',
         nom: row.nom || '',
         classe: row.classes?.nom || '',
         mois,
+        mois_text: moisText,
         montant: String(montant),
         ecole: ecoleName,
         date: dateStr,
+        color,
+        logo: logoUrl,
+        cachet: cachetUrl,
+        signature: signUrl,
+        numero,
         v: 'v2'
     }).toString();
 
-    window.open(`recu_v2.html?${params}`, 'Reçu', 'width=600,height=400');
+    const ts = Date.now();
+    window.open(`recu_v2.html?ts=${ts}&${params}`, 'Reçu', 'width=600,height=400');
 }
 
 // Expose to window for onclick
@@ -237,12 +255,16 @@ window.togglePayment = async (eleveId, isCurrentlyPaid) => {
         const amountStr = prompt('Montant du paiement (FCFA) :', '10000');
         if (!amountStr) return;
         const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
+        const { data: existing } = await db.getPaiementsByMonth(currentEcoleId, month);
+        const countPaid = (existing || []).filter(p => p.statut === 'paye').length;
+        const numero = `REÇU-${String(countPaid + 1).padStart(3, '0')}`;
         
         await db.upsertPaiement({
             eleve_id: eleveId,
             mois: month,
             statut: 'paye',
-            montant: amount
+            montant: amount,
+            numero
         });
     }
     

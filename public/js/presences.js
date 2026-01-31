@@ -9,8 +9,10 @@ const editBtn = document.getElementById('editBtn');
 const errorEl = document.getElementById('error-message');
 const statusPill = document.getElementById('statusPill');
 const currentClassBadge = document.getElementById('currentClassBadge');
+const matiereSelect = document.getElementById('matiereSelect');
 
 let selectedClasseId = null;
+let selectedMatiereId = null;
 let presences = {};
 let classesMap = new Map();
 
@@ -28,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     classeSelect.value = selectedClasseId;
   }
   if (selectedClasseId) {
+    await loadMatieresForClasse(selectedClasseId);
     await loadEleves(selectedClasseId);
     await checkAlreadySaved();
     presenceSection.classList.remove('hidden');
@@ -36,12 +39,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   classeSelect.addEventListener('change', async () => {
     selectedClasseId = classeSelect.value;
     if (selectedClasseId) {
+      await loadMatieresForClasse(selectedClasseId);
       await loadEleves(selectedClasseId);
       await checkAlreadySaved();
       presenceSection.classList.remove('hidden');
       updateCurrentClassBadge();
     }
   });
+  if (matiereSelect) {
+    matiereSelect.addEventListener('change', () => {
+      selectedMatiereId = matiereSelect.value || null;
+    });
+  }
   saveBtn.addEventListener('click', savePresences);
   editBtn.addEventListener('click', async () => {
     const ok = confirm('Voulez-vous modifier les présences déjà enregistrées ?');
@@ -82,6 +91,32 @@ async function loadClasses() {
     classeSelect.parentElement.style.display = 'none';
     if (titleEl) titleEl.textContent = 'Ma classe';
   }
+}
+
+async function loadMatieresForClasse(classeId) {
+  if (!matiereSelect) return;
+  matiereSelect.innerHTML = '<option value="">Chargement...</option>';
+  selectedMatiereId = null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) { matiereSelect.innerHTML = '<option value="">-- Choisir une matière --</option>'; return; }
+  const { data } = await supabase
+    .from('enseignements')
+    .select('matiere')
+    .eq('classe_id', classeId)
+    .eq('professeur_id', user.id);
+  const names = Array.from(new Set((data || []).map(r => (r.matiere || '').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+  matiereSelect.innerHTML = '<option value="">-- Choisir une matière --</option>';
+  if (names.length === 0) {
+    matiereSelect.disabled = true;
+    return;
+  }
+  names.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    matiereSelect.appendChild(opt);
+  });
+  matiereSelect.disabled = false;
 }
 
 async function loadEleves(classeId) {

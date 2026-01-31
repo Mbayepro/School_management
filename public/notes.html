@@ -7,7 +7,10 @@
   <meta name="theme-color" content="#2563eb" />
   <link rel="stylesheet" href="css/dashboard-directeur.css?v=v2"/>
   <link rel="stylesheet" href="css/style.css?v=v2"/>
-  <script src="js/kill-sw.js"></script>
+  <link rel="manifest" href="manifest.json" />
+  <script src="js/pwa.js"></script>
+  <script src="js/vendor/jspdf.umd.min.js"></script>
+  <script src="js/vendor/jspdf.plugin.autotable.min.js"></script>
   <style>
     .notes-table {
         width: 100%;
@@ -102,8 +105,14 @@
 
     <div id="notesContainer" class="hidden">
        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 id="notesTitle" style="margin:0;">Liste des élèves</h3>
-            <span class="pill info">Modification automatique</span>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <h3 id="notesTitle" style="margin:0;">Liste des élèves</h3>
+                <span id="contextBadge" class="hidden" style="background:#e0f2fe; color:#0369a1; padding:4px 12px; border-radius:16px; font-size:0.85rem; font-weight:500;"></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="pill info">Modification automatique</span>
+              <button id="exportBulletinBtn" class="btn btn-sm" style="background:#3b82f6; color:white;" disabled>Exporter le bulletin</button>
+            </div>
        </div>
        
        <table class="notes-table">
@@ -185,6 +194,7 @@
     </div>
 </div>
 
+<script src="js/vendor/supabase.min.js"></script>
 <script type="module" src="js/role-guard.js?v=v3"></script>
 <script type="module" src="js/auth.js?v=v3"></script>
 <script type="module" src="js/notes.js?v=v3"></script>

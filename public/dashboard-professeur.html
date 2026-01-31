@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>School Management – Professeur</title>
   <meta name="theme-color" content="#2563eb" />
-  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/dashboard-directeur.css" />
   <link rel="stylesheet" href="css/style.css" />
+  <script src="js/pwa.js"></script>
   <style>
     /* Specific overrides for teacher dashboard if needed */
     .action-card {
@@ -160,7 +161,8 @@
   <p id="changePwdMessage" class="muted" style="display:none;"></p>
 </section>
 
-<script type="module" src="js/role-guard.js"></script>
+<script src="js/vendor/supabase.min.js"></script>
+<script type="module" src="js/role-guard.js?v=v3"></script>
 <script type="module" src="js/auth.js"></script>
 <script type="module" src="js/professeur.js"></script>
 <script type="module">

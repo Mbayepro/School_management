@@ -5,6 +5,8 @@
 -- On supprime la politique avant de potentiellement recréer la table pour éviter les conflits si on rejoue le script
 DROP POLICY IF EXISTS "Voir matieres ecole" ON matieres;
 DROP POLICY IF EXISTS "Gerer matieres directeur" ON matieres;
+DROP POLICY IF EXISTS "Inserer matieres directeur" ON matieres;
+DROP POLICY IF EXISTS "Inserer matieres professeur" ON matieres;
 
 CREATE TABLE IF NOT EXISTS matieres (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -67,6 +69,25 @@ CREATE POLICY "Voir matieres ecole" ON matieres FOR SELECT USING (
 
 CREATE POLICY "Gerer matieres directeur" ON matieres FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'directeur' AND p.ecole_id = matieres.ecole_id)
+);
+
+-- Autoriser l'insertion par le directeur (INSERT nécessite WITH CHECK)
+CREATE POLICY "Inserer matieres directeur" ON matieres FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'directeur' AND p.ecole_id = matieres.ecole_id)
+);
+
+-- Autoriser l'insertion par les professeurs dans leur école
+CREATE POLICY "Inserer matieres professeur" ON matieres FOR INSERT WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM enseignements en
+    JOIN classes c ON c.id = en.classe_id
+    JOIN profiles p ON p.id = auth.uid()
+    WHERE en.classe_id = matieres.classe_id
+      AND en.professeur_id = auth.uid()
+      AND p.role IN ('professeur','teacher')
+      AND p.ecole_id = c.ecole_id
+  )
 );
 
 -- EVALUATIONS

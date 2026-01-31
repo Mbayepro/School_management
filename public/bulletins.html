@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bulletins – School Management</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/dashboard-directeur.css?v=v2"/>
+  <link rel="stylesheet" href="css/style.css?v=v2"/>
+  <script src="js/pwa.js"></script>
+  <script src="js/vendor/jspdf.umd.min.js"></script>
+  <script src="js/vendor/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.svg" alt="Logo" class="nav-logo">
+    <span class="app">School Management</span>
+    <span class="role">Bulletins</span>
+  </div>
+  <div class="top-actions">
+    <a href="dashboard-directeur.html" class="btn ghost">Retour au tableau de bord</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="welcome-section">
+    <h1>Génération des Bulletins</h1>
+    <p class="subtitle">Générez les bulletins de notes trimestriels pour toute une classe.</p>
+  </div>
+
+  <section class="panel">
+    <header class="panel-head">
+      <h2>Configuration</h2>
+    </header>
+    
+    <div class="filters" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+      <label style="flex:1; min-width:200px;">
+        Classe
+        <select id="selectClasse" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+            <option value="">Chargement...</option>
+        </select>
+      </label>
+      
+      <label style="flex:1; min-width:200px;">
+        Période
+        <select id="selectPeriode" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+            <option value="1">1er Semestre / Trimestre</option>
+            <option value="2">2ème Semestre / Trimestre</option>
+            <option value="3">3ème Trimestre</option>
+        </select>
+      </label>
+
+      <div style="flex:1; min-width:200px; display:flex; align-items:flex-end;">
+        <button id="generateBtn" class="btn primary" style="width:100%;">
+            📄 Générer Bulletins (PDF)
+        </button>
+      </div>
+    </div>
+
+    <div id="status" class="hidden" style="padding:15px; background:#f1f5f9; border-radius:8px; margin-top:20px;">
+        <div id="statusText">Prêt</div>
+        <div id="progressBar" style="width:0%; height:4px; background:#3b82f6; transition:width 0.3s; margin-top:8px;"></div>
+    </div>
+
+  </section>
+</main>
+
+<script src="js/vendor/supabase.min.js"></script>
+<script type="module" src="js/role-guard.js?v=v3"></script>
+<script type="module" src="js/auth.js?v=v3"></script>
+<script type="module" src="js/bulletins.js?v=v1"></script>
+</body>
+</html>

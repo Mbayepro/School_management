@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>School Management – Élèves</title>
   <meta name="theme-color" content="#2563eb" />
-  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/dashboard-directeur.css?v=v2" />
   <link rel="stylesheet" href="css/style.css?v=v2" />
-  <script src="js/kill-sw.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/pwa.js"></script>
+  <script src="js/vendor/qrcode.min.js"></script>
+  <script src="js/vendor/xlsx.full.min.js"></script>
+  <script src="js/vendor/jspdf.umd.min.js"></script>
+  <script src="js/vendor/jspdf.plugin.autotable.min.js"></script>
   <style>
     .id-card-preview {
         width: 85.6mm;
@@ -87,6 +87,9 @@
         opacity: 0.95;
         margin-top: 8px;
         align-self: center;
+        background: #ffffff;
+        padding: 8px;
+        border-radius: 4px;
     }
     
     /* Print Styles */
@@ -174,6 +177,7 @@
         .id-card-qr {
             background: #ffffff !important;
             padding: 8px !important;
+            border-radius: 4px !important;
         }
     }
   </style>
@@ -217,6 +221,10 @@
     <div class="panel-head-responsive" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
         <h2>Liste des élèves</h2>
         <div style="display: flex; gap: 8px;">
+            <button id="importExcelBtn" class="btn btn-sm" style="background:#0ea5e9; color:white;">
+                📥 Importer
+            </button>
+            <input type="file" id="importExcelInput" accept=".xlsx, .xls, .csv" style="display:none;" />
             <button id="exportExcelBtn" class="btn btn-excel btn-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/><path d="M3 12h10v1H3v-1zm0-2h10v1H3v-1zm0-2h10v1H3V8z"/></svg>
                 Excel
@@ -316,6 +324,7 @@
 
 <p id="error-message" class="error"></p>
 
+<script src="js/vendor/supabase.min.js"></script>
 <script type="module" src="js/role-guard.js?v=v2"></script>
 <script type="module" src="js/auth.js?v=v2"></script>
 <script type="module" src="js/eleves.js?v=v2"></script>

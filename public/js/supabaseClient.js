@@ -5,8 +5,21 @@
 
 const APP_NAME = "School Management";
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+// import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import CONFIG from './config.js';
+
+let createClient;
+if (window.supabase && window.supabase.createClient) {
+    createClient = window.supabase.createClient;
+} else {
+    // Fallback if UMD script is missing (requires internet)
+    try {
+        const mod = await import('https://esm.sh/@supabase/supabase-js@2');
+        createClient = mod.createClient;
+    } catch (e) {
+        console.error("Supabase load error:", e);
+    }
+}
 
 // Configuration Supabase
 // Note: On force l'utilisation des valeurs par défaut pour éviter les erreurs de cache localStorage avec d'anciens projets

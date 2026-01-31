@@ -414,6 +414,52 @@ export async function setupTopbarBrand() {
   } catch (_) {}
 }
 
+export async function applySchoolTheme() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: profile } = await db.getProfile(user.id);
+    const ecoleId = profile?.ecole_id;
+    if (!ecoleId) return;
+    const { data: ecoleRow } = await supabase
+      .from("ecoles")
+      .select("couleur")
+      .eq("id", ecoleId)
+      .single();
+    const color = ecoleRow?.couleur || "#2563eb";
+    const styleId = "school-theme-style";
+    const css = `
+      :root { --primary-color: ${color}; }
+      .btn.primary { background-color: var(--primary-color) !important; border-color: var(--primary-color) !important; }
+      .btn.ghost { color: var(--primary-color) !important; border-color: var(--primary-color) !important; }
+      .btn.ghost:hover { background-color: rgba(0,0,0,0.03) !important; }
+      .pill { background-color: var(--primary-color) !important; color: #fff !important; }
+      .panel-head h2 { color: var(--primary-color) !important; }
+      .card-arrow { color: var(--primary-color) !important; }
+      .panel { border-top: 2px solid var(--primary-color); }
+      input:focus, select:focus, textarea:focus { outline: none !important; border-color: var(--primary-color) !important; }
+      a:hover { color: var(--primary-color) !important; }
+    `;
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = styleId;
+      styleEl.textContent = css;
+      document.head.appendChild(styleEl);
+    } else {
+      styleEl.textContent = css;
+    }
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", color);
+    const logoEl = document.querySelector(".topbar .brand .nav-logo");
+    if (logoEl) {
+      const bucket = supabase.storage.from("school_assets");
+      const logoUrl = bucket.getPublicUrl(`${ecoleId}/logo.png`)?.data?.publicUrl || null;
+      if (logoUrl) logoEl.src = logoUrl;
+    }
+  } catch (_) {}
+}
+
 // Si on est sur login.html, brancher le formulaire sans redirection automatique
 const init = () => {
   const page = window.location.pathname.split("/").pop();
@@ -426,6 +472,8 @@ const init = () => {
     return;
   }
   setupChangePasswordUI();
+  setupTopbarBrand();
+  applySchoolTheme();
 };
 
 if (document.readyState === 'loading') {

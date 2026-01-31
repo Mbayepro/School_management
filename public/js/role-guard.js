@@ -74,6 +74,7 @@ const init = async () => {
     "classes.html": ["directeur", "director"],
     "eleves.html": ["directeur", "director"],
     "paiements.html": ["directeur", "director"],
+    "parametres.html": ["directeur", "director"],
     "dashboard-professeur.html": ["professeur", "teacher"],
     "presences.html": ["professeur", "teacher"],
     "notes.html": ["professeur", "teacher", "directeur", "director"]
