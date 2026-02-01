@@ -164,8 +164,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+      console.error("Auth Error or No User:", authError);
+      alert("Session expirée, veuillez vous reconnecter.");
+      window.location.href = 'login.html';
+      return;
+  }
 
   const { data: ecole, error: ecoleError } = await db.getEcoleId(user.id);
   if (ecoleError) return;

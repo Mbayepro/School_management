@@ -115,10 +115,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       form.style.display = "none";
-      successEl.classList.remove("hidden");
+      if (successEl) {
+          successEl.classList.remove("hidden");
+          successEl.style.display = "block"; // Force display
+      } else {
+          alert("Compte créé avec succès ! En attente d'activation.");
+          window.location.href = 'login.html';
+      }
 
     } catch (err) {
       console.error(err);
+      // Si l'erreur est liée à l'école ou au profil mais que l'utilisateur est créé, on peut considérer ça comme un demi-succès
+      // Mais pour l'instant on affiche l'erreur.
       showError(err.message || "Une erreur est survenue lors de l'inscription.");
     } finally {
       btn.disabled = false;
