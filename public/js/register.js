@@ -117,9 +117,13 @@ document.addEventListener("DOMContentLoaded", () => {
       form.style.display = "none";
       if (successEl) {
           successEl.classList.remove("hidden");
-          successEl.style.display = "block"; // Force display
+          successEl.style.display = "block";
+          // Redirection automatique après 3 secondes pour fluidifier le parcours
+          setTimeout(() => {
+              window.location.href = 'login.html';
+          }, 3000);
       } else {
-          alert("Compte créé avec succès ! En attente d'activation.");
+          alert("Compte créé avec succès ! Redirection vers la connexion...");
           window.location.href = 'login.html';
       }
 

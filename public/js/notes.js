@@ -882,44 +882,50 @@ function getNoteMaxForClass(niveau) {
             return;
         }
 
-        let res = await supabase
-            .from('notes')
-            .upsert(noteData, upsertOptions);
-        let error = res.error || null;
-        if (error) {
-            const msg = (error.message || '').toLowerCase();
-            if (msg.includes('column "matiere_id"') || msg.includes('column matiere_id')) {
-                res = await supabase
-                    .from('notes')
-                    .upsert({
-                        evaluation_id: evalId,
-                        eleve_id: eleveId,
-                        note: parseFloat(valeur),
-                        appreciation: appreciation,
-                        type_evaluation: typeEval,
-                        trimestre: triText
-                    }, { onConflict: 'evaluation_id, eleve_id' });
-                error = res.error || null;
-            } else if (msg.includes('column "trimestre"') || msg.includes('column trimestre')) {
-                res = await supabase
-                    .from('notes')
-                    .upsert({
-                        evaluation_id: evalId,
-                        eleve_id: eleveId,
-                        note: parseFloat(valeur),
-                        appreciation: appreciation,
-                        matiere_id: matId,
-                        type_evaluation: typeEval
-                    }, { onConflict: 'evaluation_id, eleve_id' });
-                error = res.error || null;
+        try {
+            let res = await supabase
+                .from('notes')
+                .upsert(noteData, upsertOptions);
+            let error = res.error || null;
+            if (error) {
+                const msg = (error.message || '').toLowerCase();
+                if (msg.includes('column "matiere_id"') || msg.includes('column matiere_id')) {
+                    res = await supabase
+                        .from('notes')
+                        .upsert({
+                            evaluation_id: evalId,
+                            eleve_id: eleveId,
+                            note: parseFloat(valeur),
+                            appreciation: appreciation,
+                            type_evaluation: typeEval,
+                            trimestre: triText
+                        }, { onConflict: 'evaluation_id, eleve_id' });
+                    error = res.error || null;
+                } else if (msg.includes('column "trimestre"') || msg.includes('column trimestre')) {
+                    res = await supabase
+                        .from('notes')
+                        .upsert({
+                            evaluation_id: evalId,
+                            eleve_id: eleveId,
+                            note: parseFloat(valeur),
+                            appreciation: appreciation,
+                            matiere_id: matId,
+                            type_evaluation: typeEval
+                        }, { onConflict: 'evaluation_id, eleve_id' });
+                    error = res.error || null;
+                }
             }
-        }
 
-        if (error) {
-            console.error('Error saving note:', error);
-            showToast('Erreur de sauvegarde: ' + error.message, 'error');
-        } else {
+            if (error) throw error;
             console.log('Note sauvegardée avec succès');
+
+        } catch (e) {
+            console.error('Error saving note:', e);
+            if (!navigator.onLine || (e.message && (e.message.includes('fetch') || e.message.includes('network')))) {
+                SyncManager.addToQueue('notes', noteData, 'UPSERT', upsertOptions);
+                return;
+            }
+            showToast('Erreur de sauvegarde: ' + e.message, 'error');
         }
     }
     

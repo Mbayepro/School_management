@@ -242,8 +242,12 @@ document.addEventListener('DOMContentLoaded', async () => {
               ecole_id: ecoleId
           }]);
 
-          if (error) throw error;
+          if (error) {
+            console.error("Erreur Supabase INSERT:", error);
+            throw error;
+          }
 
+          console.log("Succès création classe");
           classeNomEl.value = '';
           classeMessage.textContent = 'Classe créée avec succès !';
           classeMessage.className = 'success-message';
@@ -252,6 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
       } catch (e) {
           console.error("Catch Error:", e);
+          console.error("[CreateClass] Détails de l'échec - Payload:", { nom, niveau, ecole_id: ecoleId });
           
           // --- OFFLINE SYNC LOGIC ---
           if (!navigator.onLine || (e.message && (e.message.includes('fetch') || e.message.includes('network')))) {
