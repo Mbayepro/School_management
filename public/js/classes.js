@@ -173,22 +173,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
   }
 
-  const { data: ecole, error: ecoleError } = await db.getEcoleId(user.id);
-  if (ecoleError) return;
-  ecoleId = ecole?.ecole_id || null;
-  if (!ecoleId) {
-    try {
-      await db.ensureProfileForUser(user.id, user.email || '', null);
-      const { data: refreshed } = await db.getEcoleId(user.id);
-      ecoleId = refreshed?.ecole_id || null;
-    } catch (_) {}
-    if (!ecoleId) {
-      showError('Impossible de créer une classe: compte non associé à une école.', classeMessage);
-      if (form) {
-        Array.from(form.querySelectorAll('input, select, button')).forEach(el => { el.disabled = true; });
+  // 1. Get Ecole ID with better error handling
+  let { data: ecole, error: ecoleError } = await db.getEcoleId(user.id);
+  
+  if (ecoleError || !ecole) {
+      console.warn("Ecole ID not found initially, trying ensureProfileForUser...");
+      try {
+          await db.ensureProfileForUser(user.id, user.email || '', null);
+          const { data: refreshed } = await db.getEcoleId(user.id);
+          ecole = refreshed;
+      } catch (e) {
+          console.error("ensureProfileForUser failed:", e);
       }
-      return;
+  }
+
+  ecoleId = ecole?.ecole_id || null;
+
+  if (!ecoleId) {
+    const msg = 'Impossible de récupérer l\'identifiant de l\'école. Veuillez contacter le support ou vous reconnecter.';
+    console.error(msg);
+    showError(msg, classeMessage);
+    if (form) {
+      Array.from(form.querySelectorAll('input, select, button')).forEach(el => { el.disabled = true; });
     }
+    return;
   }
 
   if (classesGrid) {
@@ -235,8 +243,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           
           await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
       } catch (e) {
-          console.error(e);
-          showError('Erreur lors de la création: ' + (e.message || JSON.stringify(e)), classeMessage);
+          console.error("Catch Error:", e);
+          let errorDetail = e.message || JSON.stringify(e);
+          
+          if (e.code === '23505') {
+              errorDetail = "Une classe avec ce nom existe déjà pour votre école.";
+          }
+          
+          alert('Erreur: ' + errorDetail); // Alert explicit
+          showError(errorDetail, classeMessage);
       } finally {
           submitBtn.disabled = false;
           submitBtn.textContent = prevBtnText;
