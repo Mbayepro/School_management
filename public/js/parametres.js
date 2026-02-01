@@ -36,6 +36,15 @@ const heureLimiteMsg = document.getElementById('heureLimiteMsg');
 const btnFixClasses = document.getElementById('btnFixClasses');
 const fixMessage = document.getElementById('fixMessage');
 
+// Coefficients UI
+const coefNiveauSelect = document.getElementById('coefNiveauSelect');
+const btnLoadCoefs = document.getElementById('btnLoadCoefs');
+const coefsContainer = document.getElementById('coefsContainer');
+const coefsBody = document.getElementById('coefsBody');
+const btnAddCoefLine = document.getElementById('btnAddCoefLine');
+const btnSaveCoefs = document.getElementById('btnSaveCoefs');
+const coefMsg = document.getElementById('coefMsg');
+
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { window.location.href = 'login.html'; return; }
@@ -64,6 +73,10 @@ function bindEvents() {
   if (btnSaveNoteMax) btnSaveNoteMax.addEventListener('click', saveNoteMax);
   if (btnSaveHeureLimite) btnSaveHeureLimite.addEventListener('click', saveHeureLimite);
   if (btnFixClasses) btnFixClasses.addEventListener('click', fixOrphanClasses);
+  
+  if (btnLoadCoefs) btnLoadCoefs.addEventListener('click', loadCoefs);
+  if (btnAddCoefLine) btnAddCoefLine.addEventListener('click', () => addCoefLine());
+  if (btnSaveCoefs) btnSaveCoefs.addEventListener('click', saveCoefs);
 }
 
 function showError(msg) {
@@ -420,4 +433,132 @@ async function resolveAssetPath(baseName) {
       }
   }
   return null;
+}
+
+// Coefficients Logic
+async function loadCoefs() {
+    const niveau = coefNiveauSelect.value;
+    const serie = coefSerieInput.value.trim();
+    if (!niveau) return alert("Sélectionnez un niveau.");
+    if (!ecoleId) return alert("École non identifiée.");
+
+    btnLoadCoefs.disabled = true;
+    coefsContainer.classList.remove('hidden');
+    coefsBody.innerHTML = '<tr><td colspan="3">Chargement...</td></tr>';
+    
+    try {
+        let query = supabase
+            .from('coefficients_officiels')
+            .select('*')
+            .eq('ecole_id', ecoleId)
+            .eq('niveau', niveau);
+            
+        if (serie) {
+            query = query.eq('serie', serie);
+        } else {
+            query = query.or(`serie.eq.,serie.is.null`);
+        }
+
+        const { data, error } = await query.order('matiere');
+            
+        if (error) throw error;
+        
+        coefsBody.innerHTML = '';
+        if (data && data.length > 0) {
+            data.forEach(item => addCoefLine(item.matiere, item.valeur_coef));
+        } else {
+            addCoefLine('', 1);
+        }
+    } catch (e) {
+        console.error(e);
+        coefsBody.innerHTML = `<tr><td colspan="3" style="color:red">Erreur: ${e.message}</td></tr>`;
+    } finally {
+        btnLoadCoefs.disabled = false;
+    }
+}
+
+function addCoefLine(matiere = '', coef = 1) {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #f1f5f9';
+    tr.innerHTML = `
+        <td style="padding:8px;">
+            <input type="text" class="coef-matiere" value="${matiere}" placeholder="Nom matière" 
+            style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:4px;">
+        </td>
+        <td style="padding:8px;">
+            <input type="number" class="coef-val" value="${coef}" min="1" step="0.5" 
+            style="width:80px; padding:6px; border:1px solid #cbd5e1; border-radius:4px;">
+        </td>
+        <td style="padding:8px; text-align:center;">
+            <button class="btn ghost small" style="color:red;" title="Supprimer">X</button>
+        </td>
+    `;
+    tr.querySelector('button').addEventListener('click', () => tr.remove());
+    coefsBody.appendChild(tr);
+}
+
+function inferCycle(niveau) {
+    const n = niveau.toLowerCase();
+    if (['ci','cp','ce1','ce2','cm1','cm2'].some(x => n.includes(x))) return 'primaire';
+    if (['6eme','5eme','4eme','3eme'].some(x => n.includes(x))) return 'college';
+    return 'lycee';
+}
+
+async function saveCoefs() {
+    const niveau = coefNiveauSelect.value;
+    const serie = coefSerieInput.value.trim();
+    if (!niveau) return alert("Sélectionnez un niveau.");
+    if (!ecoleId) return;
+    
+    btnSaveCoefs.disabled = true;
+    btnSaveCoefs.textContent = "Sauvegarde...";
+    
+    const rows = coefsBody.querySelectorAll('tr');
+    const records = [];
+    
+    rows.forEach(tr => {
+        const matiere = tr.querySelector('.coef-matiere').value.trim();
+        const coef = parseFloat(tr.querySelector('.coef-val').value) || 1;
+        if (matiere) {
+            records.push({
+                ecole_id: ecoleId,
+                niveau: niveau,
+                matiere: matiere,
+                valeur_coef: coef,
+                cycle: inferCycle(niveau),
+                serie: serie // Save the serie
+            });
+        }
+    });
+    
+    try {
+        // Delete old records for this niveau/serie combination
+        let delQuery = supabase.from('coefficients_officiels').delete().eq('ecole_id', ecoleId).eq('niveau', niveau);
+        if (serie) {
+            delQuery = delQuery.eq('serie', serie);
+        } else {
+            delQuery = delQuery.or(`serie.eq.,serie.is.null`);
+        }
+        await delQuery;
+        
+        if (records.length > 0) {
+            const { error } = await supabase.from('coefficients_officiels').insert(records);
+            if (error) throw error;
+        }
+        
+        if (coefMsg) {
+            coefMsg.textContent = "Coefficients sauvegardés !";
+            coefMsg.style.color = "green";
+            setTimeout(() => coefMsg.textContent = '', 3000);
+        }
+    } catch (e) {
+        console.error(e);
+        if (coefMsg) {
+            coefMsg.textContent = "Erreur: " + e.message;
+            coefMsg.style.color = "red";
+        }
+    } finally {
+        btnSaveCoefs.disabled = false;
+        btnSaveCoefs.textContent = "Enregistrer tout";
+    }
 }

@@ -82,9 +82,44 @@ async function prepareGeneration() {
     try {
         // 1. Fetch Data
         const { data: ecole } = await supabase.from('ecoles').select('nom, note_max').eq('id', ecoleId).single();
+        // Default noteMax from ecole config
         if (ecole && ecole.note_max) noteMax = ecole.note_max;
 
-        const { data: classe } = await supabase.from('classes').select('nom, niveau').eq('id', classeId).single();
+        const { data: classe } = await supabase.from('classes').select('nom, niveau, serie').eq('id', classeId).single();
+        
+        // Update noteMax based on class level (Senegal standard)
+        if (classe && classe.niveau) {
+             const n = classe.niveau.toLowerCase().trim();
+             const primary = ['ci', 'cp', 'ce1', 'ce2', 'cm1', 'cm2'];
+             if (primary.some(p => n.includes(p) || n === p)) {
+                 noteMax = 10;
+             } else {
+                 noteMax = 20;
+             }
+        }
+
+        // Fetch Official Coefficients
+        let officialCoefs = [];
+        try {
+            let coefQuery = supabase
+                .from('coefficients_officiels')
+                .select('matiere, valeur_coef')
+                .eq('ecole_id', ecoleId)
+                .eq('niveau', classe.niveau);
+                
+            if (classe.serie) {
+                coefQuery = coefQuery.eq('serie', classe.serie);
+            } else {
+                // If class has no serie, try to find coefficients with no serie or empty serie
+                coefQuery = coefQuery.or(`serie.eq.,serie.is.null`);
+            }
+            
+            const { data: coefs } = await coefQuery;
+            officialCoefs = coefs || [];
+        } catch (e) {
+            console.warn("Official coefs fetch error", e);
+        }
+
         const { data: eleves } = await supabase.from('eleves').select('*').eq('classe_id', classeId).eq('actif', true).order('nom');
         
         // Fetch Evaluations
@@ -112,6 +147,17 @@ async function prepareGeneration() {
             .select('*')
             .in('id', matiereIds)
             .order('nom');
+
+        // Apply Official Coefficients override
+        if (matieres && officialCoefs.length > 0) {
+            matieres.forEach(m => {
+                const mName = (m.nom || m.nom_matiere || '').trim();
+                const official = officialCoefs.find(c => c.matiere.toLowerCase() === mName.toLowerCase());
+                if (official) {
+                    m.coefficient = official.valeur_coef;
+                }
+            });
+        }
 
         // Store context
         genContext = { ecole, classe, eleves, evals, notes, matieres, periodeVal };
@@ -357,7 +403,7 @@ async function generatePDF(ctx) {
             } else {
                 doc.autoTable({
                     startY: 60,
-                    head: [['Matière', 'Coef', 'Notes', 'Moyenne', 'Appréciation']],
+                    head: [['Matière', 'Coef', 'Notes', `Moyenne (/${noteMax})`, 'Appréciation']],
                     body: rows,
                     theme: 'grid',
                     headStyles: { fillColor: [37, 99, 235] }

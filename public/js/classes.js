@@ -173,21 +173,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
   }
 
-  // 1. Get Ecole ID with better error handling
-  let { data: ecole, error: ecoleError } = await db.getEcoleId(user.id);
+  // 1. Get Ecole ID with better error handling - prioritizing profiles table
+  // Use global ecoleId variable
   
-  if (ecoleError || !ecole) {
-      console.warn("Ecole ID not found initially, trying ensureProfileForUser...");
+  try {
+      const { data: profile } = await supabase.from('profiles').select('ecole_id').eq('id', user.id).single();
+      if (profile && profile.ecole_id) {
+          ecoleId = profile.ecole_id;
+      }
+  } catch (err) {
+      console.warn("Profile fetch error:", err);
+  }
+
+  // Fallback if not found in profiles (legacy support or race condition)
+  if (!ecoleId) {
+      console.warn("Ecole ID not found in profiles, trying ensureProfileForUser...");
       try {
           await db.ensureProfileForUser(user.id, user.email || '', null);
-          const { data: refreshed } = await db.getEcoleId(user.id);
-          ecole = refreshed;
+          const { data: refreshed } = await supabase.from('profiles').select('ecole_id').eq('id', user.id).single();
+          ecoleId = refreshed?.ecole_id;
       } catch (e) {
           console.error("ensureProfileForUser failed:", e);
       }
   }
-
-  ecoleId = ecole?.ecole_id || null;
 
   if (!ecoleId) {
     const msg = 'Impossible de récupérer l\'identifiant de l\'école. Veuillez contacter le support ou vous reconnecter.';
@@ -244,6 +252,18 @@ document.addEventListener('DOMContentLoaded', async () => {
           await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
       } catch (e) {
           console.error("Catch Error:", e);
+          
+          // --- OFFLINE SYNC LOGIC ---
+          if (!navigator.onLine || (e.message && (e.message.includes('fetch') || e.message.includes('network')))) {
+              SyncManager.addToQueue('classes', { nom, niveau, ecole_id: ecoleId }, 'INSERT');
+              classeNomEl.value = '';
+              classeMessage.textContent = 'Connexion perdue. Classe sauvegardée localement.';
+              classeMessage.className = 'success-message';
+              classeMessage.style.display = 'block';
+              return;
+          }
+          // --------------------------
+
           let errorDetail = e.message || JSON.stringify(e);
           
           if (e.code === '23505') {

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { SyncManager } from './sync-manager.js';
 
 let ecoleId = null;
 let ecoleName = 'School Management';
@@ -6,6 +7,17 @@ let noteMax = 20;
 let currentClasseId = null;
 let currentMatiereId = null;
 let currentEvalId = null;
+let classNiveaux = {}; // Store levels for grading scale logic
+
+// Helper for Senegal Grading System
+function getNoteMaxForClass(niveau) {
+    if (!niveau) return 20;
+    const n = niveau.toLowerCase().trim();
+    // Primary levels in Senegal
+    const primary = ['ci', 'cp', 'ce1', 'ce2', 'cm1', 'cm2'];
+    if (primary.some(p => n.includes(p) || n === p)) return 10;
+    return 20;
+}
     let currentEvaluationsList = []; // Store evaluations for offline access
 
     // --- Offline Sync ---
@@ -16,15 +28,8 @@ let currentEvalId = null;
     } catch (_) {}
 
     function addToOfflineQueue(item) {
-        offlineQueue.push(item);
-        localStorage.setItem('school_mgr_offline_notes', JSON.stringify(offlineQueue));
-        showToast('Mode hors ligne: Note sauvegardée localement', 'info');
-        const ind = document.getElementById(`saved-${item.data.eleve_id}`);
-        if (ind) {
-             ind.classList.add('visible');
-             ind.textContent = '💾'; // Local save icon
-             setTimeout(() => ind.classList.remove('visible'), 2000);
-        }
+        // Redirection vers SyncManager
+        SyncManager.addToQueue('notes', item.data, 'UPSERT', item.options);
     }
 
     async function syncOfflineNotes() {
@@ -143,6 +148,13 @@ let currentEvalId = null;
             currentClasseId = e.target.value;
             currentMatiereId = null;
             currentEvalId = null;
+            
+            // Update noteMax based on class level
+            if (currentClasseId) {
+                const niveau = classNiveaux[currentClasseId];
+                noteMax = getNoteMaxForClass(niveau);
+            }
+
             resetSelect(selectMatiere, "Sélectionner une matière d'abord");
             resetSelect(selectEvaluation, "Sélectionner une matière d'abord");
             if (selectMatiere) selectMatiere.disabled = !currentClasseId;
@@ -542,7 +554,9 @@ let currentEvalId = null;
         if (selectClasse) selectClasse.innerHTML = '<option value="">-- Choisir une classe --</option>';
         if (evalClasse) evalClasse.innerHTML = '<option value="">-- Choisir --</option>';
 
+        classNiveaux = {}; // Reset map
         classes.forEach(c => {
+            classNiveaux[c.id] = c.niveau; // Store niveau
             const label = `${c.nom} (${c.niveau})`;
             
             if (selectClasse) {
@@ -792,6 +806,23 @@ let currentEvalId = null;
                         setTimeout(() => indicator.classList.remove('visible'), 2000);
                     }
                 };
+
+                valInput.addEventListener('input', () => {
+                    const val = valInput.value.trim().toUpperCase();
+                    if (val === '' || val === 'ABS' || val === 'NN' || val === 'A' || val === 'N') {
+                        valInput.style.color = '';
+                        valInput.style.borderColor = '';
+                        return;
+                    }
+                    const num = parseFloat(val.replace(',', '.'));
+                    if (!isNaN(num) && num > noteMax) {
+                        valInput.style.color = 'red';
+                        valInput.style.borderColor = 'red';
+                    } else {
+                        valInput.style.color = '';
+                        valInput.style.borderColor = '';
+                    }
+                });
 
                 valInput.addEventListener('change', save);
                 appInput.addEventListener('change', save);
