@@ -1,4 +1,4 @@
-// Configuration centralisée pour School Management
+// Configuration centralisée pour School Management - v2 (Cache Busting)
 
 // Remplacez ces valeurs par celles de votre projet Supabase
 const CONFIG = {
