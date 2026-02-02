@@ -22,23 +22,23 @@ if (window.supabase && window.supabase.createClient) {
 }
 
 // Configuration Supabase
-// Note: On force l'utilisation des valeurs par défaut pour éviter les erreurs de cache localStorage avec d'anciens projets
-const DEFAULT_SUPABASE_URL = CONFIG.SUPABASE_URL;
-const DEFAULT_SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
+// On ignore TOUJOURS le localStorage pour l'URL et la KEY pour éviter les conflits avec d'anciens projets
+const SUPABASE_URL = CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
 
-// Nettoyage automatique si l'ancien projet cassé est détecté
-const storedUrl = localStorage.getItem("SUPABASE_URL");
-if (storedUrl && (storedUrl.includes("nqbaodpzlxgpptzqhhul") || storedUrl.includes("xbfaznaecugwtgzypsjk"))) {
-    console.warn("Nettoyage de l'ancienne configuration Supabase invalide");
+// Nettoyage forcé du localStorage pour éviter les conflits persistants
+try {
     localStorage.removeItem("SUPABASE_URL");
     localStorage.removeItem("SUPABASE_ANON_KEY");
-}
-
-const SUPABASE_URL = localStorage.getItem("SUPABASE_URL") || DEFAULT_SUPABASE_URL;
-const SUPABASE_ANON_KEY = localStorage.getItem("SUPABASE_ANON_KEY") || DEFAULT_SUPABASE_ANON_KEY;
+    // On nettoie aussi la session si elle est liée à l'ancien projet (vérification simple sur l'URL)
+    const storedSession = localStorage.getItem(`sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`);
+    if (!storedSession && localStorage.length > 0) {
+        // Optionnel: on pourrait être plus agressif si nécessaire, mais commençons par ignorer les vieilles clés
+    }
+} catch(e) { console.warn("Erreur nettoyage localStorage:", e); }
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    alert(`Configuration ${APP_NAME}:\nVeuillez configurer SUPABASE_URL et SUPABASE_ANON_KEY dans localStorage`);
+    alert(`Configuration ${APP_NAME}:\nVeuillez configurer SUPABASE_URL et SUPABASE_ANON_KEY dans config.js`);
 }
 
 // Création du client Supabase

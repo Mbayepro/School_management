@@ -110,11 +110,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // --- SUCCÈS ---
       form.style.display = "none";
+      window.scrollTo(0, 0);
       
       // Force le message de succès
       if (successEl) {
           successEl.classList.remove("hidden");
           successEl.style.display = "block";
+          // On garde le contenu HTML statique ou on le met à jour
+          // Ici on le met à jour pour être sûr
           successEl.innerHTML = `
           <h3>Compte créé avec succès !</h3>
           <p>Votre école <strong>${ecoleNom}</strong> a été enregistrée.</p>
@@ -125,12 +128,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <p style="margin-top:10px;">Vous pouvez tenter de vous connecter pour vérifier votre statut.</p>
           <a href="login.html" class="btn primary btn-sm" style="margin-top:10px;">Retour à la connexion</a>
         `;
-        successEl.classList.remove("hidden");
-        
-        // Optionnel : rediriger après délai
-        // setTimeout(() => { window.location.href = 'login.html'; }, 5000);
       } else {
-          alert("Compte créé avec succès ! Redirection vers la connexion...");
+          alert("Compte créé avec succès ! En attente de validation administrateur.");
           window.location.href = 'login.html';
       }
 

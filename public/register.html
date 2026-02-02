@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -42,12 +43,12 @@
     </form>
 
     <p id="error-message" class="error"></p>
-    <p id="success-message" class="hidden" style="color: #166534; background: #dcfce7; padding: 10px; border-radius: 6px; text-align: center; margin-top: 1rem; border: 1px solid #bbf7d0;">
+    <div id="success-message" class="hidden" style="color: #166534; background: #dcfce7; padding: 10px; border-radius: 6px; text-align: center; margin-top: 1rem; border: 1px solid #bbf7d0;">
       Compte créé avec succès !<br>
       <span style="font-size: 0.9em; color: #15803d;">Votre compte est en attente d'activation par l'administrateur.</span>
       <br><br>
       <a href="login.html" class="btn primary btn-sm">Retour à la connexion</a>
-    </p>
+    </div>
 
     <div style="margin-top:12px; text-align:center;">
       <a href="login.html" class="btn-link">Déjà un compte ? Se connecter</a>
