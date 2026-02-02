@@ -49,7 +49,7 @@ export async function login(email, password) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, ecole_id')
+    .select('role, ecole_id, is_approved')
     .eq('id', userId)
     .single();
   if (!profile || !profile.role) {
@@ -59,8 +59,24 @@ export async function login(email, password) {
     }
     return;
   }
+
+  // Vérification is_approved
+  if (profile.is_approved !== true) {
+      if (errorEl) {
+          errorEl.innerHTML = `
+            <strong>Compte en attente de validation.</strong><br>
+            L'administrateur doit approuver votre compte avant que vous puissiez accéder au tableau de bord.
+          `;
+          errorEl.style.display = "block";
+          errorEl.className = "error-message warning"; // Style jaune si dispo, sinon rouge
+      }
+      return;
+  }
+
   const role = (profile.role || "").trim().toLowerCase();
-  if (role === 'directeur' || role === 'director') {
+  
+  // Si le rôle est 'pending_director' mais qu'il est approuvé, on le traite comme un directeur
+  if (role === 'directeur' || role === 'director' || (role === 'pending_director' && profile.is_approved === true)) {
     window.location.href = 'dashboard-directeur.html';
     return;
   }

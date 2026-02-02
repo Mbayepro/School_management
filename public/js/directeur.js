@@ -17,7 +17,9 @@ const init = async () => {
   
   let ecoleId = profile.ecole_id;
   const role = (profile?.role || '').trim().toLowerCase();
-  if ((role === 'directeur' || role === 'director') && !ecoleId) {
+  
+  // Check if director (or pending approved) needs school association
+  if ((role === 'directeur' || role === 'director' || (role === 'pending_director' && profile.is_approved)) && !ecoleId) {
     const email = user.email || '';
     try {
       await db.ensureProfileForUser(user.id, email, null);

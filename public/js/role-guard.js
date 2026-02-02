@@ -56,7 +56,9 @@ const init = async () => {
       el.style.display = "block";
       el.className = "muted";
     } else {
+      // Redirection si accès direct à une page interne
       alert(msg);
+      window.location.href = 'login.html';
     }
   };
 
@@ -65,19 +67,24 @@ const init = async () => {
     return;
   }
 
+  if (profile.is_approved !== true) {
+      deny("Compte en attente de validation par l'administrateur.");
+      return;
+  }
+
   const role = (profile.role || "").trim().toLowerCase();
 
   const permissions = {
-    "dashboard-directeur.html": ["directeur", "director"],
-    "presences-directeur.html": ["directeur", "director"],
-    "paiements-directeur.html": ["directeur", "director"],
-    "classes.html": ["directeur", "director"],
-    "eleves.html": ["directeur", "director"],
-    "paiements.html": ["directeur", "director"],
-    "parametres.html": ["directeur", "director"],
+    "dashboard-directeur.html": ["directeur", "director", "pending_director"],
+    "presences-directeur.html": ["directeur", "director", "pending_director"],
+    "paiements-directeur.html": ["directeur", "director", "pending_director"],
+    "classes.html": ["directeur", "director", "pending_director"],
+    "eleves.html": ["directeur", "director", "pending_director"],
+    "paiements.html": ["directeur", "director", "pending_director"],
+    "parametres.html": ["directeur", "director", "pending_director"],
     "dashboard-professeur.html": ["professeur", "teacher"],
     "presences.html": ["professeur", "teacher"],
-    "notes.html": ["professeur", "teacher", "directeur", "director"]
+    "notes.html": ["professeur", "teacher", "directeur", "director", "pending_director"]
   };
 
   const allowedRoles = permissions[page];

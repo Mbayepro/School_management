@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const { data: profile } = await db.getProfile(user.id);
   const r = (profile?.role || '').trim().toLowerCase();
-  if (!profile || (r !== 'directeur' && r !== 'director')) {
+  if (!profile || (r !== 'directeur' && r !== 'director' && !(r === 'pending_director' && profile.is_approved))) {
     return setError('Accès réservé à la direction');
   }
 

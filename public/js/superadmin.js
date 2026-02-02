@@ -172,9 +172,107 @@ function setupDirectorManagement() {
   saveBtn.addEventListener("click", () => handleSave());
 }
 
+async function setupPendingApprovals() {
+  const container = document.getElementById("pendingList");
+  const countBadge = document.getElementById("pendingCount");
+  if (!container) return;
+
+  async function loadPending() {
+    container.innerHTML = '<p class="muted">Chargement...</p>';
+    
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select('*, ecoles(nom)')
+      .eq('is_approved', false)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      container.innerHTML = `<p class="error">Erreur: ${error.message}</p>`;
+      return;
+    }
+
+    if (!profiles || profiles.length === 0) {
+      container.innerHTML = '<p class="muted">Aucun compte en attente.</p>';
+      if (countBadge) {
+        countBadge.textContent = "0";
+        countBadge.className = "pill";
+      }
+      return;
+    }
+
+    if (countBadge) {
+      countBadge.textContent = profiles.length;
+      countBadge.className = "pill warning";
+    }
+
+    container.innerHTML = '';
+    profiles.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.display = 'flex';
+      card.style.justifyContent = 'space-between';
+      card.style.alignItems = 'center';
+      card.style.padding = '12px';
+      card.style.border = '1px solid #e5e7eb';
+      card.style.borderRadius = '8px';
+      card.style.backgroundColor = '#fff';
+
+      const ecoleNom = p.ecoles?.nom || 'École inconnue';
+      const roleDisplay = p.role === 'pending_director' ? 'Directeur (En attente)' : p.role;
+
+      card.innerHTML = `
+        <div>
+          <div style="font-weight:600;">${p.email}</div>
+          <div style="font-size:0.9rem; color:#6b7280;">${roleDisplay} • ${ecoleNom}</div>
+          <div style="font-size:0.8rem; color:#9ca3af;">Inscrit le: ${new Date(p.created_at).toLocaleDateString()}</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn primary btn-sm btn-approve" data-id="${p.id}">Approuver</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    // Add event listeners
+    document.querySelectorAll('.btn-approve').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const uid = e.target.dataset.id;
+        if (!uid) return;
+        
+        const originalText = e.target.textContent;
+        e.target.textContent = '...';
+        e.target.disabled = true;
+
+        try {
+          // Update profile directly via RLS
+          const { error: updateErr } = await supabase
+            .from('profiles')
+            .update({ is_approved: true })
+            .eq('id', uid);
+
+          if (updateErr) throw updateErr;
+          
+          // Refresh list
+          await loadPending();
+          
+        } catch (err) {
+          console.error(err);
+          alert("Erreur lors de l'approbation: " + err.message);
+          e.target.textContent = originalText;
+          e.target.disabled = false;
+        }
+      });
+    });
+  }
+
+  // Initial load
+  await loadPending();
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   setupSupabaseConfigUI();
   setupAdvancedToggle();
   setupDirectorManagement();
+  setupPendingApprovals();
   setupLogoutButton();
 });

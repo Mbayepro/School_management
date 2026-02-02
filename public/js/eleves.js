@@ -276,7 +276,7 @@ const init = async () => {
       const { data: profile } = await db.getProfile(user.id);
       const r = ((profile?.role) || '').trim().toLowerCase();
       // if (!profile || (r !== 'directeur' && r !== 'director')) return; // Role check
-      const isDirector = (r === 'directeur' || r === 'director');
+      const isDirector = (r === 'directeur' || r === 'director' || (r === 'pending_director' && profile.is_approved));
 
       ecoleId = profile?.ecole_id || null;
       

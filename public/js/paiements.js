@@ -7,8 +7,16 @@ let allPayments = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Auth Check
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) {
+    let user = null;
+    try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        user = data?.user;
+    } catch (e) {
+        console.warn("Auth check warning:", e);
+    }
+
+    if (!user) {
         window.location.href = 'login.html';
         return;
     }

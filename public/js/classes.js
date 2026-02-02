@@ -1,4 +1,5 @@
 import { supabase, db } from './supabaseClient.js';
+import { SyncManager } from './sync-manager.js';
 
 // Logic: Open Modal -> Load current teachers (via getEnseignements) -> Allow Add
 async function openAssignModal(classeId, assignProfEmail, assignMatiere, assignClasseId, currentTeachersList, assignProfModal) {
@@ -164,11 +165,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
   }
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (authError || !user) {
-      console.error("Auth Error or No User:", authError);
-      alert("Session expirée, veuillez vous reconnecter.");
+  let user = null;
+  try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      user = data?.user;
+  } catch (e) {
+      console.warn("Auth check warning:", e);
+  }
+
+  if (!user) {
+      console.error("No user found after auth check");
+      alert("Session expirée ou erreur de connexion. Veuillez vous reconnecter.");
       window.location.href = 'login.html';
       return;
   }

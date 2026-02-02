@@ -60,24 +60,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      if (authError) {
-        // Fallback si erreur 500 (parfois arrive en local/dev)
-        if (authError.status === 500) {
-           // On tente une inscription simple sans metadata si l'autre échoue
-          const { data: fbData, error: fbErr } = await supabase.auth.signUp({ email, password });
-          if (!fbErr) {
-            form.style.display = "none";
-            successEl.classList.remove("hidden");
-            return;
-          }
-        }
-        throw authError;
-      }
+      if (authError) throw authError;
 
       const userId = authData.user?.id || null;
       
-      // Si l'utilisateur existe déjà (authData.user est null si confirmation email requise, 
-      // mais ici on assume que ça renvoie l'user ou on gère le cas)
       if (userId) {
         // 2. Créer l'école
         const { data: ecoleData, error: ecoleError } = await supabase
@@ -88,21 +74,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (ecoleError) {
              console.error("Erreur création école:", ecoleError);
-             throw new Error("Erreur lors de la création de l'école.");
+             // Si l'école existe déjà ou autre erreur, on continue pour essayer de créer le profil si possible,
+             // ou on arrête ? Pour un nouveau compte, l'école ne devrait pas exister.
+             // On log mais on throw pour avertir l'utilisateur.
+             throw new Error("Erreur lors de la création de l'école : " + ecoleError.message);
         }
 
         const ecoleId = ecoleData ? ecoleData.id : null;
 
         // 3. Créer le profil lié à l'école
+        const role = (email === 'mbayeadama669@gmail.com') ? 'super_admin' : 'pending_director';
+        const isApproved = (email === 'mbayeadama669@gmail.com');
+
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert([
+          .upsert([
               { 
                   id: userId, 
                   email: email, 
-                  role: 'directeur',
+                  role: role, 
                   ecole_id: ecoleId,
-                  active: false 
+                  active: true,
+                  is_approved: isApproved
               }
           ]);
         
@@ -110,18 +103,32 @@ document.addEventListener("DOMContentLoaded", () => {
              // Ignorer erreur de duplication si l'utilisateur a cliqué deux fois vite
              if (profileError.code !== '23505') {
                  console.error("Erreur création profil:", profileError);
+                 throw new Error("Erreur lors de la création du profil : " + profileError.message);
              }
         }
       }
 
+      // --- SUCCÈS ---
       form.style.display = "none";
+      
+      // Force le message de succès
       if (successEl) {
           successEl.classList.remove("hidden");
           successEl.style.display = "block";
-          // Redirection automatique après 3 secondes pour fluidifier le parcours
-          setTimeout(() => {
-              window.location.href = 'login.html';
-          }, 3000);
+          successEl.innerHTML = `
+          <h3>Compte créé avec succès !</h3>
+          <p>Votre école <strong>${ecoleNom}</strong> a été enregistrée.</p>
+          <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #ffeeba;">
+            <strong>Statut : En attente de validation</strong><br>
+            Votre compte a été créé mais doit être approuvé par l'administrateur avant de pouvoir accéder au tableau de bord.
+          </div>
+          <p style="margin-top:10px;">Vous pouvez tenter de vous connecter pour vérifier votre statut.</p>
+          <a href="login.html" class="btn primary btn-sm" style="margin-top:10px;">Retour à la connexion</a>
+        `;
+        successEl.classList.remove("hidden");
+        
+        // Optionnel : rediriger après délai
+        // setTimeout(() => { window.location.href = 'login.html'; }, 5000);
       } else {
           alert("Compte créé avec succès ! Redirection vers la connexion...");
           window.location.href = 'login.html';
@@ -129,8 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch (err) {
       console.error(err);
-      // Si l'erreur est liée à l'école ou au profil mais que l'utilisateur est créé, on peut considérer ça comme un demi-succès
-      // Mais pour l'instant on affiche l'erreur.
+      window.scrollTo(0, 0);
       showError(err.message || "Une erreur est survenue lors de l'inscription.");
     } finally {
       btn.disabled = false;

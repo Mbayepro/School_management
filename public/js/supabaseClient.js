@@ -28,7 +28,7 @@ const DEFAULT_SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
 
 // Nettoyage automatique si l'ancien projet cassé est détecté
 const storedUrl = localStorage.getItem("SUPABASE_URL");
-if (storedUrl && storedUrl.includes("nqbaodpzlxgpptzqhhul")) {
+if (storedUrl && (storedUrl.includes("nqbaodpzlxgpptzqhhul") || storedUrl.includes("xbfaznaecugwtgzypsjk"))) {
     console.warn("Nettoyage de l'ancienne configuration Supabase invalide");
     localStorage.removeItem("SUPABASE_URL");
     localStorage.removeItem("SUPABASE_ANON_KEY");
@@ -460,7 +460,18 @@ export const utils = {
         if (!profile || !profile.role) return false;
         const role = profile.role.trim().toLowerCase();
         const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-        return allowed.map(r => r.toLowerCase()).includes(role);
+        
+        // Check exact match
+        if (allowed.map(r => r.toLowerCase()).includes(role)) return true;
+
+        // Special case: pending_director treated as director if approved
+        if (role === 'pending_director' && profile.is_approved === true) {
+            if (allowed.some(r => ['directeur', 'director'].includes(r.toLowerCase()))) {
+                return true;
+            }
+        }
+
+        return false;
     },
 
     /**

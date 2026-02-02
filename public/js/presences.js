@@ -81,7 +81,7 @@ async function loadClasses() {
     
     // Check role
     const { data: profile } = await db.getProfile(user.id);
-    const isDirector = profile && (profile.role === 'directeur' || profile.role === 'director');
+    const isDirector = profile && (profile.role === 'directeur' || profile.role === 'director' || (profile.role === 'pending_director' && profile.is_approved));
 
     let data = [];
     let classesError = null;

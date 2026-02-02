@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!user) return;
   const { data: profile } = await db.getProfile(user.id);
   const r = (profile?.role || '').trim().toLowerCase();
-  if (!profile || (r !== 'directeur' && r !== 'director')) return;
+  if (!profile || (r !== 'directeur' && r !== 'director' && !(r === 'pending_director' && profile.is_approved))) return;
   ecoleId = profile.ecole_id;
 
   await loadData(filterMois.value);
