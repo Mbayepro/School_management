@@ -12,6 +12,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!form) return;
 
+  // Helper pour afficher les erreurs
+  function showError(msg) {
+      if (errorEl) {
+          errorEl.textContent = msg;
+          errorEl.style.display = "block";
+      } else {
+          alert(msg);
+      }
+      btn.disabled = false;
+      btn.textContent = "S'inscrire";
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     
@@ -49,106 +61,50 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.textContent = "Création en cours...";
 
     try {
-      // 1. Inscription Auth
+      // 1. Inscription Auth avec Métadonnées
+      // Le Trigger SQL 'on_auth_user_created' se chargera de créer l'école et le profil
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
             data: {
-                role: 'directeur' // Métadonnée utile
+                ecole_nom: ecoleNom, // Important : transmis au Trigger SQL
+                role: 'pending_director'
             }
         }
       });
 
       if (authError) throw authError;
 
-      const userId = authData.user?.id || null;
-      
-      if (userId) {
-        // 2. Créer l'école
-        const { data: ecoleData, error: ecoleError } = await supabase
-            .from('ecoles')
-            .insert([{ nom: ecoleNom, active: false }]) 
-            .select()
-            .single();
-
-        if (ecoleError) {
-             console.error("Erreur création école:", ecoleError);
-             // Si l'école existe déjà ou autre erreur, on continue pour essayer de créer le profil si possible,
-             // ou on arrête ? Pour un nouveau compte, l'école ne devrait pas exister.
-             // On log mais on throw pour avertir l'utilisateur.
-             throw new Error("Erreur lors de la création de l'école : " + ecoleError.message);
-        }
-
-        const ecoleId = ecoleData ? ecoleData.id : null;
-
-        // 3. Créer le profil lié à l'école
-        const role = (email === 'mbayeadama669@gmail.com') ? 'super_admin' : 'pending_director';
-        const isApproved = (email === 'mbayeadama669@gmail.com');
-
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert([
-              { 
-                  id: userId, 
-                  email: email, 
-                  role: role, 
-                  ecole_id: ecoleId,
-                  active: true,
-                  is_approved: isApproved
-              }
-          ]);
-        
-        if (profileError) {
-             // Ignorer erreur de duplication si l'utilisateur a cliqué deux fois vite
-             if (profileError.code !== '23505') {
-                 console.error("Erreur création profil:", profileError);
-                 throw new Error("Erreur lors de la création du profil : " + profileError.message);
-             }
-        }
-      }
-
-      // --- SUCCÈS ---
+      // Si succès (même si email confirmation est requis)
+      // On affiche le message de succès
       form.style.display = "none";
       window.scrollTo(0, 0);
       
-      // Force le message de succès
       if (successEl) {
-          successEl.classList.remove("hidden");
-          successEl.style.display = "block";
-          // On garde le contenu HTML statique ou on le met à jour
-          // Ici on le met à jour pour être sûr
-          successEl.innerHTML = `
+        successEl.classList.remove("hidden");
+        successEl.style.display = "block";
+        successEl.innerHTML = `
           <h3>Compte créé avec succès !</h3>
-          <p>Votre école <strong>${ecoleNom}</strong> a été enregistrée.</p>
+          <p>L'école <strong>${ecoleNom}</strong> a été enregistrée.</p>
           <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #ffeeba;">
             <strong>Statut : En attente de validation</strong><br>
-            Votre compte a été créé mais doit être approuvé par l'administrateur avant de pouvoir accéder au tableau de bord.
+            Votre compte a été créé. Si vous ne pouvez pas vous connecter immédiatement, vérifiez vos emails pour confirmer votre adresse.
+            <br><br>
+            Une fois connecté, vous devrez attendre l'approbation de l'administrateur.
           </div>
-          <p style="margin-top:10px;">Vous pouvez tenter de vous connecter pour vérifier votre statut.</p>
-          <a href="login.html" class="btn primary btn-sm" style="margin-top:10px;">Retour à la connexion</a>
+          <a href="login.html" class="btn primary btn-sm" style="margin-top:15px;">Retour à la connexion</a>
         `;
-      } else {
-          alert("Compte créé avec succès ! En attente de validation administrateur.");
-          window.location.href = 'login.html';
       }
 
-    } catch (err) {
-      console.error(err);
-      window.scrollTo(0, 0);
-      showError(err.message || "Une erreur est survenue lors de l'inscription.");
+    } catch (error) {
+      console.error("Erreur inscription:", error);
+      showError(error.message || "Une erreur est survenue lors de l'inscription.");
     } finally {
-      btn.disabled = false;
-      btn.textContent = prevText;
+        if (!successEl || successEl.classList.contains("hidden")) {
+            btn.disabled = false;
+            btn.textContent = prevText;
+        }
     }
   });
-
-  function showError(msg) {
-    if (errorEl) {
-      errorEl.textContent = msg;
-      errorEl.style.display = "block";
-    } else {
-      alert(msg);
-    }
-  }
 });
