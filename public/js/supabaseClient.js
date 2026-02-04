@@ -50,157 +50,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 // Export des fonctions utilitaires
-export const db = {
-    // Ecoles
-    async getAllEcoles() {
-        const { data, error } = await supabase
-            .from('ecoles')
-            .select('*')
-            .order('nom', { ascending: true });
-        return { data, error };
-    },
-    async setEcoleActive(ecoleId, active) {
-        const { data, error } = await supabase
-            .from('ecoles')
-            .update({ active })
-            .eq('id', ecoleId)
-            .select()
-            .single();
-        return { data, error };
-    },
-    async deleteEcole(ecoleId) {
-        const { error } = await supabase
-            .from('ecoles')
-            .delete()
-            .eq('id', ecoleId);
-        return { error };
-    },
-    // Profiles
-    async getProfile(userId) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-        return { data, error };
-    },
-
-    async getClassesForProfessorViaCours(professeurId) {
-        const { data, error } = await supabase
-            .from('enseignements')
-            .select(`
-                id,
-                classe_id,
-                classes!inner(
-                id,
-                    nom,
-                    niveau
-                )
-            `)
-            .eq('professeur_id', professeurId);
-        // Map to unique classes
-        const classes = (data || [])
-            .map(e => e.classes)
-            .filter(Boolean);
-        // Deduplicate by id
-        const unique = [];
-        const seen = new Set();
-        for (const c of classes) {
-            if (!seen.has(c.id)) {
-                seen.add(c.id);
-                unique.push(c);
-            }
-        }
-        return { data: unique, error };
-    },
-
-    async getEnseignementsByEcole(ecoleId) {
-        const { data, error } = await supabase
-            .from('enseignements')
-            .select(`
-                id,
-                classe_id,
-                classes!inner(
-                    id,
-                    ecole_id
-                )
-            `)
-            .eq('classes.ecole_id', ecoleId);
-        return { data, error };
-    },
-
-    async getEcoleId(userId) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('ecole_id')
-            .eq('id', userId)
-            .single();
-        return { data, error };
-    },
-
-    // Classes
-    async getClassesByEcole(ecoleId) {
-        const { data, error } = await supabase
-            .from('classes')
-            .select('*')
-            .eq('ecole_id', ecoleId)
-            .order('nom');
-        return { data, error };
-    },
-
-    async getEcole(ecoleId) {
-        const { data, error } = await supabase
-            .from('ecoles')
-            .select('*')
-            .eq('id', ecoleId)
-            .single();
-        return { data, error };
-    },
-
-    async getClassesByProfesseur(professeurId) {
-        // 1. Classes where user is the main professor
-        // Use specific columns to avoid RLS issues with select(*)
-        const { data: mainClasses, error: mainError } = await supabase
-            .from('classes')
-            .select('id, nom, niveau, ecole_id, professeur_id')
-            .eq('professeur_id', professeurId);
-            
-        // 2. Classes where user teaches a subject (via enseignements)
-        const { data: subjectClasses, error: subjectError } = await supabase
-            .from('enseignements')
-            .select('classe_id, classes(id, nom, niveau, ecole_id)')
-            .eq('professeur_id', professeurId);
-            
-        if (mainError && subjectError) {
-             console.error("Error fetching classes:", mainError, subjectError);
-             return { data: [], error: mainError };
-        }
-
-        const classesMap = new Map();
-        
-        // Add main classes
-        if (mainClasses) {
-            mainClasses.forEach(c => classesMap.set(c.id, c));
-        }
-        
-        // Add subject classes
-        if (subjectClasses) {
-            subjectClasses.forEach(e => {
-                if (e.classes) classesMap.set(e.classes.id, e.classes);
-            });
-        }
-
-        const classes = Array.from(classesMap.values()).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
-        return { data: classes, error: null };
-    },
-    
-    async assignProfessorByEmail(email) {
-        const { data, error } = await supabase
-            .rpc('assign_professor_by_email', { target_email: email });
-        return { data, error };
-    },
-
-    // --- UTILS ---
+export const utils = {
     checkRole(profile, allowedRoles) {
         if (!profile || !profile.role) return false;
         const role = profile.role.trim().toLowerCase();
@@ -217,5 +67,35 @@ export const db = {
         }
 
         return false;
+    },
+
+    showToast(message, type = 'info') {
+        const containerId = 'toast-container-global';
+        let container = document.getElementById(containerId);
+        if (!container) {
+            container = document.createElement('div');
+            container.id = containerId;
+            container.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;';
+            document.body.appendChild(container);
+        }
+        
+        const toast = document.createElement('div');
+        const bgColor = type === 'error' ? '#ef4444' : (type === 'success' ? '#10b981' : '#3b82f6');
+        toast.style.cssText = `background-color:${bgColor};color:white;padding:12px 24px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);font-family:system-ui,font-size:14px;pointer-events:auto;min-width:200px;opacity:0;transform:translateY(20px);transition:all 0.3s ease-out;`;
+        toast.textContent = message;
+        
+        container.appendChild(toast);
+        
+        // Trigger animation
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(20px)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 };

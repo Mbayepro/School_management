@@ -1,4 +1,4 @@
-import { supabase, db } from './supabaseClient.js';
+import { supabase } from "./supabaseClient.js";
 import { SyncManager } from './sync-manager.js';
 
 // Logic: Open Modal -> Load current teachers (via getEnseignements) -> Allow Add
@@ -11,7 +11,12 @@ async function openAssignModal(classeId, assignProfEmail, assignMatiere, assignC
     if (currentTeachersList) {
         currentTeachersList.innerHTML = '<p class="muted" style="text-align:center;">Chargement...</p>';
 
-        const { data: ens, error } = await db.getEnseignementsByClasse(classeId);
+        const { data: ens, error } = await supabase
+            .from('enseignements')
+            .select('id, professeur_id, matiere, profiles:professeur_id(email)')
+            .eq('classe_id', classeId);
+            // Note: RLS handles filtering, but we could add .eq('classe.ecole_id', ecoleId) if we joined classes
+
 
         currentTeachersList.innerHTML = '';
 
@@ -41,7 +46,7 @@ async function openAssignModal(classeId, assignProfEmail, assignMatiere, assignC
                 // Delete action
                 li.querySelector('button').addEventListener('click', async () => {
                     if(!confirm('Retirer ce cours ?')) return;
-                    await db.deleteEnseignement(e.id);
+                    await supabase.from('enseignements').delete().eq('id', e.id);
                     openAssignModal(classeId, assignProfEmail, assignMatiere, assignClasseId, currentTeachersList, assignProfModal); // Refresh
                 });
 
@@ -61,10 +66,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('classeForm');
   const classeNomEl = document.getElementById('classeNom');
   const classeNiveauEl = document.getElementById('classeNiveau');
+  const classeSerieEl = document.getElementById('classeSerie');
+  const classeCycleEl = document.getElementById('classeCycle');
+  const labelSerie = document.getElementById('labelSerie');
   const classeMessage = document.getElementById('classeMessage');
   const classesGrid = document.getElementById('classesGrid');
   const totalClassesPill = document.getElementById('totalClassesPill');
   const noClassesMsg = document.getElementById('noClassesMsg');
+
+  // Logic to auto-set Cycle and toggle Serie
+  if (classeNiveauEl) {
+      classeNiveauEl.addEventListener('change', () => {
+          const val = classeNiveauEl.value;
+          
+          // Cycle Logic
+          if (val === 'primaire') {
+              classeCycleEl.value = 'Primaire';
+          } else if (val === 'college' || val === 'lycee') {
+              classeCycleEl.value = 'Secondaire';
+          } else {
+              classeCycleEl.value = '';
+          }
+
+          // Serie Logic
+          if (val === 'lycee') {
+              labelSerie.classList.remove('hidden');
+          } else {
+              labelSerie.classList.add('hidden');
+              if (classeSerieEl) classeSerieEl.value = '';
+          }
+      });
+  }
 
   // Modal elements
   const assignProfModal = document.getElementById('assignProfModal');
@@ -93,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               return;
           }
 
+          // Support for username-only input (e.g., "mbaye-maths")
           if (!email.includes('@')) {
               email += '@ecole.local';
           }
@@ -126,7 +159,11 @@ document.addEventListener('DOMContentLoaded', async () => {
               }
 
               // Use getUserByEmail to get ID
-              const { data: userData, error: userErr } = await db.getUserByEmail(email);
+              const { data: userData, error: userErr } = await supabase
+                  .from('profiles')
+                  .select('id')
+                  .eq('email', email)
+                  .single();
 
               if (userErr || !userData) {
                   alert("Professeur introuvable. Avez-vous créé son compte d'abord ?");
@@ -135,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
               const pid = userData.id;
 
-              const { error: insErr } = await db.addEnseignement({
+              const { error: insErr } = await supabase.from('enseignements').insert({
                   classe_id: cid,
                   professeur_id: pid,
                   matiere: matiere
@@ -145,7 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   if (insErr.code === '23505') alert('Ce professeur enseigne déjà cette matière dans cette classe.');
                   else alert(insErr.message);
               } else {
-                  const { error: assignErr } = await db.assignClassToProfessor(email, cid);
+                  const { error: assignErr } = await supabase.from('classes').update({ professeur_id: pid }).eq('id', cid);
                   if (assignErr) {
                       alert(assignErr.message);
                       return;
@@ -195,14 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Fallback if not found in profiles (legacy support or race condition)
   if (!ecoleId) {
-      console.warn("Ecole ID not found in profiles, trying ensureProfileForUser...");
-      try {
-          await db.ensureProfileForUser(user.id, user.email || '', null);
-          const { data: refreshed } = await supabase.from('profiles').select('ecole_id').eq('id', user.id).single();
-          ecoleId = refreshed?.ecole_id;
-      } catch (e) {
-          console.error("ensureProfileForUser failed:", e);
-      }
+      console.warn("Ecole ID not found in profiles.");
   }
 
   if (!ecoleId) {
@@ -232,9 +262,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       const nom = classeNomEl.value.trim();
       const niveau = classeNiveauEl.value;
+      const cycle = classeCycleEl.value;
+      const serie = classeSerieEl ? classeSerieEl.value : null;
       
-      if (!nom || !niveau) {
-          showError('Veuillez remplir tous les champs.', classeMessage);
+      if (!nom || !niveau || !cycle) {
+          showError('Veuillez remplir tous les champs obligatoires (Nom, Niveau).', classeMessage);
           return;
       }
 
@@ -247,6 +279,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           const { error } = await supabase.from('classes').insert([{
               nom,
               niveau,
+              cycle,
+              serie: serie || null,
               ecole_id: ecoleId
           }]);
 
@@ -264,11 +298,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           await loadClasses(classesGrid, totalClassesPill, noClassesMsg);
       } catch (e) {
           console.error("Catch Error:", e);
-          console.error("[CreateClass] Détails de l'échec - Payload:", { nom, niveau, ecole_id: ecoleId });
+          console.error("[CreateClass] Détails de l'échec - Payload:", { nom, niveau, cycle, serie, ecole_id: ecoleId });
           
           // --- OFFLINE SYNC LOGIC ---
           if (!navigator.onLine || (e.message && (e.message.includes('fetch') || e.message.includes('network')))) {
-              SyncManager.addToQueue('classes', { nom, niveau, ecole_id: ecoleId }, 'INSERT');
+              SyncManager.addToQueue('classes', { nom, niveau, cycle, serie: serie || null, ecole_id: ecoleId }, 'INSERT');
               classeNomEl.value = '';
               classeMessage.textContent = 'Connexion perdue. Classe sauvegardée localement.';
               classeMessage.className = 'success-message';
@@ -302,7 +336,11 @@ async function loadClasses(classesGrid, totalClassesPill, noClassesMsg) {
   if (!classesGrid) return;
   classesGrid.innerHTML = '<div class="muted" style="grid-column: 1/-1; text-align: center;">Chargement...</div>';
 
-  const { data, error } = await db.getClassesByEcole(ecoleId);
+  const { data, error } = await supabase
+    .from('classes')
+    .select('*')
+    .eq('ecole_id', ecoleId)
+    .order('nom');
   if (error) {
     if (classesGrid) classesGrid.innerHTML = '<div class="error">Erreur de chargement.</div>';
     return;
@@ -363,7 +401,10 @@ async function loadClasses(classesGrid, totalClassesPill, noClassesMsg) {
       // Update pill with actual count of enseignements
       const pill = card.querySelector('[data-role="ens-pill"]');
       try {
-        const { data: ens } = await db.getEnseignementsByClasse(c.id);
+        const { data: ens } = await supabase
+          .from('enseignements')
+          .select('id')
+          .eq('classe_id', c.id);
         const count = ens ? ens.length : 0;
         if (pill) {
           if (count > 0) {
@@ -387,7 +428,7 @@ async function loadClasses(classesGrid, totalClassesPill, noClassesMsg) {
         // Visual feedback
         if (deleteBtn) deleteBtn.innerHTML = '...';
         
-        const { error: delErr } = await supabase.from('classes').delete().eq('id', c.id);
+        const { error: delErr } = await supabase.from('classes').delete().eq('id', c.id).eq('ecole_id', ecoleId);
         if (delErr) {
           alert('Erreur suppression: ' + delErr.message);
           if (deleteBtn) deleteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';

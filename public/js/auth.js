@@ -6,7 +6,7 @@
  * - Redirection UNIQUE après clic sur login
  */
 
-import { supabase, db } from "./supabaseClient.js";
+import { supabase } from "./supabaseClient.js";
 
 /**
  * Effectue le login puis redirige UNE seule fois selon le rôle.
@@ -416,7 +416,11 @@ export async function setupTopbarBrand() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: profile } = await db.getProfile(user.id);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
     const ecoleId = profile?.ecole_id;
     if (!ecoleId) return;
     const { data: ecoleRow } = await supabase
@@ -434,7 +438,11 @@ export async function applySchoolTheme() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: profile } = await db.getProfile(user.id);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
     const ecoleId = profile?.ecole_id;
     if (!ecoleId) return;
     const { data: ecoleRow } = await supabase

@@ -1,4 +1,4 @@
-import { supabase, db } from './supabaseClient.js';
+import { supabase } from './supabaseClient.js';
 import CONFIG from './config.js';
 
 const valClasses = document.getElementById('valClasses');
@@ -12,7 +12,11 @@ const init = async () => {
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if (userErr || !user) return; // auth.js handles redirect usually
 
-  const { data: profile, error: profileErr } = await db.getProfile(user.id);
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
   if (profileErr || !profile) return;
   
   let ecoleId = profile.ecole_id;
@@ -20,19 +24,11 @@ const init = async () => {
   
   // Check if director (or pending approved) needs school association
   if ((role === 'directeur' || role === 'director' || (role === 'pending_director' && profile.is_approved)) && !ecoleId) {
-    const email = user.email || '';
-    try {
-      await db.ensureProfileForUser(user.id, email, null);
-      const { data: refreshed } = await db.getProfile(user.id);
-      ecoleId = refreshed?.ecole_id || null;
-    } catch (_) {}
-    if (!ecoleId) {
-      if (errorEl) {
-        errorEl.textContent = "Votre compte n’est pas encore associé à une école. Réessayez plus tard ou contactez l’administrateur.";
-        errorEl.style.display = "block";
-      }
-      return;
+    if (errorEl) {
+      errorEl.textContent = "Votre compte n’est pas encore associé à une école. Réessayez plus tard ou contactez l’administrateur.";
+      errorEl.style.display = "block";
     }
+    return;
   }
   const month = getCurrentMonth();
 
@@ -118,7 +114,7 @@ const init = async () => {
                  return;
              }
 
-             const { data, error } = await db.assignProfessorByEmail(email);
+             const { data, error } = await supabase.rpc('assign_professor_by_email', { target_email: email });
              if (error) {
                 alert(error.message || 'Erreur lors de l’ajout du professeur.');
                 return;

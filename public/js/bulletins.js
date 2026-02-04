@@ -126,6 +126,7 @@ async function prepareGeneration() {
         const { data: evals } = await supabase
             .from('evaluations')
             .select('*')
+            .eq('ecole_id', ecoleId)
             .eq('classe_id', classeId)
             .eq('trimestre', parseInt(periodeVal));
             
@@ -138,6 +139,7 @@ async function prepareGeneration() {
         const { data: notes } = await supabase
             .from('notes')
             .select('*')
+            .eq('ecole_id', ecoleId)
             .in('evaluation_id', evalIds);
 
         // Fetch Matieres referenced in evaluations
@@ -145,6 +147,7 @@ async function prepareGeneration() {
         const { data: matieres } = await supabase
             .from('matieres')
             .select('*')
+            .eq('ecole_id', ecoleId)
             .in('id', matiereIds)
             .order('nom');
 
@@ -240,7 +243,7 @@ async function finalizeGeneration() {
             if (m) m.coefficient = newCoef;
             
             // Update in DB (parallel)
-            updates.push(supabase.from('matieres').update({ coefficient: newCoef }).eq('id', id));
+            updates.push(supabase.from('matieres').update({ coefficient: newCoef }).eq('id', id).eq('ecole_id', ecoleId));
         });
         
         await Promise.all(updates);

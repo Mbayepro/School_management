@@ -1,4 +1,4 @@
-import { supabase, db } from './supabaseClient.js';
+import { supabase, utils } from './supabaseClient.js';
 
 let ecoleId = null;
 let ecoleName = 'School Management';
@@ -131,7 +131,7 @@ const init = async () => {
               renderElevesList();
               updateFilteredMetrics(filterClasse?.value || '', filterNiveau?.value || '');
             } else {
-              const { data, error } = await supabase.from('eleves').insert([{ nom, prenom, classe_id: classeId, tel_parent: tel, actif: true }]).select().single();
+              const { data, error } = await supabase.from('eleves').insert([{ nom, prenom, classe_id: classeId, tel_parent: tel, actif: true, ecole_id: ecoleId }]).select().single();
               if (error) throw error;
               
               const created = data;
@@ -273,7 +273,11 @@ const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return; // window.location.href = 'index.html'; // Optional redirect
 
-      const { data: profile } = await db.getProfile(user.id);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
       const r = ((profile?.role) || '').trim().toLowerCase();
       // if (!profile || (r !== 'directeur' && r !== 'director')) return; // Role check
       const isDirector = (r === 'directeur' || r === 'director' || (r === 'pending_director' && profile.is_approved));
@@ -459,7 +463,8 @@ const init = async () => {
                       prenom,
                       classe_id: classeId,
                       tel_parent: tel,
-                      actif: true
+                      actif: true,
+                      ecole_id: ecoleId
                   }]);
 
                   if (error) {

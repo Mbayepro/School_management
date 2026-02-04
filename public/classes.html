@@ -47,6 +47,28 @@
             <option value="lycee">Lycée</option>
           </select>
         </label>
+        
+        <label id="labelSerie" class="hidden">
+          Série
+          <select id="classeSerie">
+            <option value="">-- Choisir une série --</option>
+            <option value="L">L</option>
+            <option value="S">S</option>
+            <option value="L1">L1</option>
+            <option value="L2">L2</option>
+            <option value="S1">S1</option>
+            <option value="S2">S2</option>
+            <option value="T">T</option>
+            <option value="G">G</option>
+            <option value="STEG">STEG</option>
+          </select>
+        </label>
+
+        <label>
+          Cycle (Automatique)
+          <input type="text" id="classeCycle" readonly style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed;" placeholder="Sélectionnez un niveau..." />
+        </label>
+
         <label>
           Nom de la classe
           <input type="text" id="classeNom" placeholder="Ex: CP A, 6ème B..." required />

@@ -38,6 +38,7 @@ const fixMessage = document.getElementById('fixMessage');
 
 // Coefficients UI
 const coefNiveauSelect = document.getElementById('coefNiveauSelect');
+const coefSerieInput = document.getElementById('coefSerieInput');
 const btnLoadCoefs = document.getElementById('btnLoadCoefs');
 const coefsContainer = document.getElementById('coefsContainer');
 const coefsBody = document.getElementById('coefsBody');

@@ -1,5 +1,5 @@
 
-import { supabase, db } from './supabaseClient.js';
+import { supabase } from './supabaseClient.js';
 
 let ecoleId = null;
 let classesById = new Map();
@@ -44,7 +44,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return setError('Utilisateur non connecté');
 
-  const { data: profile } = await db.getProfile(user.id);
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
   const r = (profile?.role || '').trim().toLowerCase();
   if (!profile || (r !== 'directeur' && r !== 'director' && !(r === 'pending_director' && profile.is_approved))) {
     return setError('Accès réservé à la direction');

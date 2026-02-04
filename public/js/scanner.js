@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .select('statut')
                 .eq('eleve_id', studentId)
                 .eq('mois', currentMonth)
+                .eq('ecole_id', currentEcoleId)
                 .maybeSingle();
 
             const isPaid = paiement && paiement.statut === 'paye';
@@ -178,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const statutPresence = (today > limitDate) ? 'retard' : 'present';
             const presence = {
                 eleve_id: student.id,
+                ecole_id: currentEcoleId,
                 date: todayStr,
                 statut: statutPresence,
                 marque_par: profile?.id || user.id,

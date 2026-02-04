@@ -1,4 +1,4 @@
-import { db, utils, supabase } from './supabaseClient.js';
+import { utils, supabase } from './supabaseClient.js';
 
 let currentEcoleId = null;
 let currentEcole = null;
@@ -21,7 +21,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const { data: profile } = await db.getProfile(user.id);
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
     if (!utils.checkRole(profile, ['directeur', 'director'])) {
         utils.showToast('Accès réservé au directeur', 'error');
         setTimeout(() => window.location.href = 'index.html', 1500);
@@ -30,7 +34,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentEcoleId = profile.ecole_id;
     
     // Fetch School Details
-    const { data: ecole } = await db.getEcole(currentEcoleId);
+    const { data: ecole, error: ecoleErr } = await supabase
+        .from('ecoles')
+        .select('*')
+        .eq('id', currentEcoleId)
+        .single();
+    if (ecoleErr) console.warn("Erreur chargement école:", ecoleErr);
     currentEcole = ecole;
 
     // Init Filters
@@ -54,7 +63,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadClassesFilter() {
-    const { data: classes } = await db.getClassesByEcole(currentEcoleId);
+    const { data: classes } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('ecole_id', currentEcoleId)
+        .order('nom', { ascending: true });
     const select = document.getElementById('classFilter');
     // Keep 'all' option
     if (classes) {
@@ -75,8 +88,15 @@ async function loadData() {
     
     // Parallel fetch
     const [elevesRes, paiementsRes] = await Promise.all([
-        db.getAllElevesByEcole(currentEcoleId),
-        db.getPaiementsByMonth(currentEcoleId, month)
+        supabase
+            .from('eleves')
+            .select('*, classes(nom)')
+            .eq('ecole_id', currentEcoleId),
+        supabase
+            .from('paiements')
+            .select('*')
+            .eq('ecole_id', currentEcoleId)
+            .eq('mois', month)
     ]);
 
     if (elevesRes.error) {
@@ -235,12 +255,13 @@ window.markRelance = async (eleveId) => {
     }
     renderList();
     
-    await db.upsertPaiement({
+    await supabase.from('paiements').upsert({
         eleve_id: eleveId,
         mois: month,
         statut: 'relance',
-        montant: 0
-    });
+        montant: 0,
+        ecole_id: currentEcoleId
+    }, { onConflict: 'eleve_id, mois' });
     // Silent update
 };
 
@@ -298,17 +319,22 @@ window.togglePayment = async (eleveId, isCurrentlyPaid) => {
         if (!confirm('Voulez-vous annuler ce paiement ?')) return;
         // Set status to 'en_attente' and montant to 0 or null?
         // Upsert with updated values
-        await db.upsertPaiement({
+        await supabase.from('paiements').upsert({
             eleve_id: eleveId,
             mois: month,
             statut: 'en_attente',
-            montant: 0
-        });
+            montant: 0,
+            ecole_id: currentEcoleId
+        }, { onConflict: 'eleve_id, mois' });
     } else {
         const amountStr = prompt('Montant du paiement (FCFA) :', '10000');
         if (!amountStr) return;
         const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
-        const { data: existing } = await db.getPaiementsByMonth(currentEcoleId, month);
+        const { data: existing } = await supabase
+            .from('paiements')
+            .select('*')
+            .eq('ecole_id', currentEcoleId)
+            .eq('mois', month);
         const countPaid = (existing || []).filter(p => p.statut === 'paye').length;
         // Find existing payment for this student if any
         const existingPayment = (existing || []).find(p => p.eleve_id === eleveId);
@@ -316,13 +342,14 @@ window.togglePayment = async (eleveId, isCurrentlyPaid) => {
         // Preserve existing number if available, else generate new
         const numero = existingPayment?.numero || `REÇU-${String(countPaid + 1).padStart(3, '0')}`;
         
-        await db.upsertPaiement({
+        await supabase.from('paiements').upsert({
             eleve_id: eleveId,
             mois: month,
             statut: 'paye',
             montant: amount,
-            numero
-        });
+            numero,
+            ecole_id: currentEcoleId
+        }, { onConflict: 'eleve_id, mois' });
     }
     
     // Refresh data

@@ -1,4 +1,4 @@
-import { supabase, db } from "./supabaseClient.js";
+import { supabase } from "./supabaseClient.js";
 
 const init = async () => {
   /* Service Worker désactivé pour le développement
@@ -48,7 +48,11 @@ const init = async () => {
     return;
   }
 
-  const { data: profile } = await db.getProfile(user.id);
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
   const deny = (msg) => {
     const el = document.getElementById("error-message");
     if (el) {

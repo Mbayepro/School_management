@@ -1,4 +1,4 @@
-import { supabase, db } from './supabaseClient.js';
+import { supabase } from './supabaseClient.js';
 
 const classeSelect = document.getElementById('classeSelect');
 const presenceSection = document.getElementById('presenceSection');
@@ -15,6 +15,7 @@ let selectedClasseId = null;
 let selectedMatiereId = null;
 let presences = {};
 let classesMap = new Map();
+// currentEcoleId is declared below imports to be accessible
 
 document.addEventListener('DOMContentLoaded', async () => {
   todayDate.textContent = new Date().toLocaleDateString('fr-FR');
@@ -56,7 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ok = confirm('Voulez-vous modifier les présences déjà enregistrées ?');
     if (!ok) return;
     const today = new Date().toISOString().split('T')[0];
-    const { data } = await db.getPresencesDate(today, selectedClasseId);
+    const mat = selectedMatiereId || "Général";
+    const { data } = await supabase.from('presences').select('*').eq('date', today).eq('classe_id', selectedClasseId).eq('matiere', mat);
     if (data && data.length) {
       data.forEach(p => {
         presences[p.eleve_id] = p.statut;
@@ -80,22 +82,57 @@ async function loadClasses() {
     if (error || !user) return;
     
     // Check role
-    const { data: profile } = await db.getProfile(user.id);
-    const isDirector = profile && (profile.role === 'directeur' || profile.role === 'director' || (profile.role === 'pending_director' && profile.is_approved));
+    const { data: profile, error: profileErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+    if (profileErr || !profile) {
+        console.error("Erreur profil:", profileErr);
+        return;
+    }
+
+    const isDirector = (profile.role === 'directeur' || profile.role === 'director' || (profile.role === 'pending_director' && profile.is_approved));
+    currentEcoleId = profile.ecole_id;
 
     let data = [];
     let classesError = null;
 
     if (isDirector) {
         // Director sees all classes
-        const { data: all, error: err } = await db.getClassesByEcole(profile.ecole_id);
+        const { data: all, error: err } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('ecole_id', profile.ecole_id)
+            .order('nom', { ascending: true });
         data = all;
         classesError = err;
     } else {
         // Professor sees assigned classes
-        const { data: assigned, error: err } = await db.getClassesByProfesseur(user.id);
-        data = assigned;
-        classesError = err;
+        // 1. Main classes
+        const { data: mainClasses, error: mainErr } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('professeur_id', user.id);
+            
+        // 2. Teaching classes (via enseignements)
+        const { data: teachingData, error: teachErr } = await supabase
+            .from('enseignements')
+            .select('classes(*)')
+            .eq('professeur_id', user.id);
+            
+        if (mainErr || teachErr) {
+            classesError = mainErr || teachErr;
+        } else {
+             const teachingClasses = (teachingData || []).map(t => t.classes).filter(Boolean);
+             // Merge and unique
+             const map = new Map();
+             (mainClasses || []).forEach(c => map.set(c.id, c));
+             (teachingClasses || []).forEach(c => map.set(c.id, c));
+             data = Array.from(map.values());
+             data.sort((a,b) => a.nom.localeCompare(b.nom));
+        }
     }
     
     if (classesError) {
@@ -148,7 +185,11 @@ async function loadMatieresForClasse(classeId) {
     if (classe && classe.professeur_id === user.id) isMainProf = true;
     
     // Director also acts as main prof (sees all subjects)
-    const { data: profile } = await db.getProfile(user.id);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
     if (profile && (profile.role === 'directeur' || profile.role === 'director')) isMainProf = true;
   } catch (e) { console.error("Error checking main prof:", e); }
 
@@ -219,7 +260,11 @@ async function loadMatieresForClasse(classeId) {
 }
 
 async function loadEleves(classeId) {
-  const { data, error } = await db.getElevesByClasse(classeId);
+  const { data, error } = await supabase
+    .from('eleves')
+    .select('*')
+    .eq('classe_id', classeId)
+    .order('nom', { ascending: true });
   if (error) return;
   elevesList.innerHTML = '';
   presences = {};
@@ -243,7 +288,13 @@ async function loadEleves(classeId) {
 
 async function checkAlreadySaved() {
   const today = new Date().toISOString().split('T')[0];
-  const { data, error } = await db.getPresencesDate(today, selectedClasseId, selectedMatiereId);
+  const { data, error } = await supabase
+    .from('presences')
+    .select('*')
+    .eq('date', today)
+    .eq('classe_id', selectedClasseId)
+    .eq('matiere', selectedMatiereId || "Général")
+    .eq('ecole_id', currentEcoleId);
   if (error) return;
   if (data && data.length > 0) {
     saveBtn.disabled = true;
@@ -284,13 +335,14 @@ async function savePresences() {
   
   try {
       for (const eleveId in presences) {
-        await db.savePresence({
+        await supabase.from('presences').upsert({
           eleve_id: eleveId,
           date: today,
           statut: presences[eleveId],
           matiere: mat,
-          classe_id: selectedClasseId
-        });
+          classe_id: selectedClasseId,
+          ecole_id: currentEcoleId
+        }, { onConflict: 'eleve_id, date, matiere' });
       }
       if (statusPill) {
         statusPill.textContent = 'Présences enregistrées';
@@ -307,22 +359,7 @@ async function savePresences() {
   }
 }
 
-function showToast(type, text) {
-  let container = document.querySelector('.toast-container');
-  if (!container) {
-      container = document.createElement('div');
-      container.className = 'toast-container';
-      document.body.appendChild(container);
-  }
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = text;
-  container.appendChild(toast);
-  setTimeout(() => {
-      toast.remove();
-      if (container.children.length === 0) container.remove();
-  }, 3000);
-}
+// showToast removed (imported from supabaseClient.js)
 
 function updateCurrentClassBadge() {
   if (!currentClassBadge || !selectedClasseId) return;

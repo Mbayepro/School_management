@@ -10,14 +10,21 @@ let currentEvalId = null;
 let classNiveaux = {}; // Store levels for grading scale logic
 
 // Helper for Senegal Grading System
-function getNoteMaxForClass(niveau) {
-    if (!niveau) return 20;
-    const n = niveau.toLowerCase().trim();
-    // Primary levels in Senegal
-    const primary = ['ci', 'cp', 'ce1', 'ce2', 'cm1', 'cm2'];
-    if (primary.some(p => n.includes(p) || n === p)) return 10;
-    return 20;
-}
+    function getNoteMaxForClass(niveau, cycle) {
+        // Priority to Cycle if defined
+        if (cycle) {
+            if (cycle.toLowerCase() === 'primaire') return 10;
+            if (cycle.toLowerCase() === 'secondaire') return 20;
+        }
+
+        // Fallback to Niveau detection
+        if (!niveau) return 20;
+        const n = niveau.toLowerCase().trim();
+        // Primary levels in Senegal
+        const primary = ['ci', 'cp', 'ce1', 'ce2', 'cm1', 'cm2'];
+        if (primary.some(p => n.includes(p) || n === p)) return 10;
+        return 20;
+    }
     let currentEvaluationsList = []; // Store evaluations for offline access
 
     // --- Offline Sync ---
@@ -151,8 +158,8 @@ function getNoteMaxForClass(niveau) {
             
             // Update noteMax based on class level
             if (currentClasseId) {
-                const niveau = classNiveaux[currentClasseId];
-                noteMax = getNoteMaxForClass(niveau);
+                const info = classNiveaux[currentClasseId] || {};
+                noteMax = getNoteMaxForClass(info.niveau, info.cycle);
             }
 
             resetSelect(selectMatiere, "Sélectionner une matière d'abord");
@@ -371,7 +378,8 @@ function getNoteMaxForClass(niveau) {
                     trimestre: trimestre,
                     date_eval: date,
                     classe_id: selectedClasseId,
-                    matiere_id: selectedMatiereId
+                    matiere_id: selectedMatiereId,
+                    ecole_id: ecoleId
                 }])
                 .select()
                 .single();
@@ -533,7 +541,7 @@ function getNoteMaxForClass(niveau) {
                  if (classIds.size > 0) {
                      const { data: filtered } = await supabase
                         .from('classes')
-                        .select('id, nom, niveau')
+                        .select('id, nom, niveau, cycle')
                         .eq('ecole_id', ecoleId)
                         .in('id', Array.from(classIds))
                         .order('nom');
@@ -542,7 +550,7 @@ function getNoteMaxForClass(niveau) {
             } else {
                 const { data: all } = await supabase
                     .from('classes')
-                    .select('id, nom, niveau')
+                    .select('id, nom, niveau, cycle')
                     .eq('ecole_id', ecoleId)
                     .order('nom');
                 classes = all || [];
@@ -556,7 +564,7 @@ function getNoteMaxForClass(niveau) {
 
         classNiveaux = {}; // Reset map
         classes.forEach(c => {
-            classNiveaux[c.id] = c.niveau; // Store niveau
+            classNiveaux[c.id] = { niveau: c.niveau, cycle: c.cycle }; // Store niveau and cycle
             const label = `${c.nom} (${c.niveau})`;
             
             if (selectClasse) {
@@ -719,7 +727,8 @@ function getNoteMaxForClass(niveau) {
         const { data: existingNotes } = await supabase
             .from('notes')
             .select('eleve_id, note, appreciation, matiere_id')
-            .eq('evaluation_id', evalId);
+            .eq('evaluation_id', evalId)
+            .eq('ecole_id', ecoleId);
 
         const notesMap = new Map();
         existingNotes?.forEach(n => notesMap.set(n.eleve_id, n));
@@ -873,7 +882,8 @@ function getNoteMaxForClass(niveau) {
             appreciation: appreciation,
             matiere_id: matId,
             type_evaluation: typeEval,
-            trimestre: triText
+            trimestre: triText,
+            ecole_id: ecoleId
         };
         const upsertOptions = { onConflict: 'evaluation_id, eleve_id' };
 
@@ -898,7 +908,8 @@ function getNoteMaxForClass(niveau) {
                             note: parseFloat(valeur),
                             appreciation: appreciation,
                             type_evaluation: typeEval,
-                            trimestre: triText
+                            trimestre: triText,
+                            ecole_id: ecoleId
                         }, { onConflict: 'evaluation_id, eleve_id' });
                     error = res.error || null;
                 } else if (msg.includes('column "trimestre"') || msg.includes('column trimestre')) {
@@ -910,7 +921,8 @@ function getNoteMaxForClass(niveau) {
                             note: parseFloat(valeur),
                             appreciation: appreciation,
                             matiere_id: matId,
-                            type_evaluation: typeEval
+                            type_evaluation: typeEval,
+                            ecole_id: ecoleId
                         }, { onConflict: 'evaluation_id, eleve_id' });
                     error = res.error || null;
                 }
@@ -943,8 +955,8 @@ function getNoteMaxForClass(niveau) {
             const { data: classe } = await supabase.from('classes').select('nom, niveau').eq('id', currentClasseId).single();
             const { data: matiere } = await supabase.from('matieres').select('nom, nom_matiere').eq('id', matId).single();
             const { data: evalRow } = await supabase.from('evaluations').select('titre, type_eval, date_eval').eq('id', currentEvalId).single();
-            const { data: eleves } = await supabase.from('eleves').select('id, nom, prenom').eq('classe_id', currentClasseId).eq('actif', true).order('nom');
-            const { data: notesData } = await supabase.from('notes').select('eleve_id, note, appreciation').eq('evaluation_id', currentEvalId);
+            const { data: eleves } = await supabase.from('eleves').select('id, nom, prenom').eq('classe_id', currentClasseId).eq('ecole_id', ecoleId).eq('actif', true).order('nom');
+            const { data: notesData } = await supabase.from('notes').select('eleve_id, note, appreciation').eq('evaluation_id', currentEvalId).eq('ecole_id', ecoleId);
             const nmap = new Map((notesData || []).map(n => [n.eleve_id, n]));
             
             const rows = (eleves || []).map(e => {

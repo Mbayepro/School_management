@@ -1,4 +1,4 @@
-import { supabase, db } from './supabaseClient.js';
+import { supabase } from './supabaseClient.js';
 
 const classesList = document.getElementById('classesList');
 const classesCount = document.getElementById('classesCount');
@@ -12,24 +12,61 @@ async function loadClasses() {
   if (error || !user) {
     return;
   }
-  const { data: profile } = await db.getProfile(user.id);
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
   const r = (profile?.role || '').trim().toLowerCase();
   if (!profile || (r !== 'professeur' && r !== 'teacher')) {
     if (classesList) classesList.innerHTML = '<div class="error" style="grid-column: 1/-1; text-align: center;">Accès réservé aux professeurs.</div>';
     return;
   }
 
-  let { data, error: classesError } = await db.getClassesByProfesseur(user.id);
-  if ((!data || data.length === 0) && !classesError) {
-    const { data: ens } = await db.getClassesByEnseignements(user.id);
-    if (ens && ens.length > 0) {
-      const unique = {};
-      ens.forEach(e => {
-        const c = e.classes;
-        if (c && c.id) unique[c.id] = c;
-      });
-      data = Object.values(unique);
-    }
+  // Récupération des classes (Prof principal ou Enseignant)
+  let data = [];
+  let classesError = null;
+
+  try {
+      // 1. Classes où l'utilisateur est professeur principal
+      const { data: mainClasses, error: mainErr } = await supabase
+        .from('classes')
+        .select('id, nom, niveau, ecole_id, professeur_id')
+        .eq('professeur_id', user.id)
+        .eq('ecole_id', profile.ecole_id);
+      
+      if (mainErr) throw mainErr;
+
+      // 2. Classes où l'utilisateur enseigne une matière
+      const { data: subjectClasses, error: subErr } = await supabase
+        .from('enseignements')
+        .select('classe_id, classes(id, nom, niveau, ecole_id)')
+        .eq('professeur_id', user.id)
+        .eq('ecole_id', profile.ecole_id);
+
+      if (subErr) throw subErr;
+
+      const classesMap = new Map();
+      
+      // Ajout des classes principales
+      if (mainClasses) {
+          mainClasses.forEach(c => classesMap.set(c.id, c));
+      }
+      
+      // Ajout des classes par enseignement
+      if (subjectClasses) {
+          subjectClasses.forEach(e => {
+              if (e.classes) classesMap.set(e.classes.id, e.classes);
+          });
+      }
+
+      data = Array.from(classesMap.values());
+
+  } catch (err) {
+      console.error("Erreur chargement classes:", err);
+      classesError = err;
   }
  
   if (classesError) {
