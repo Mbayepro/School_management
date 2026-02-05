@@ -255,10 +255,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       classeMessage.textContent = '';
       classeMessage.style.display = 'none';
 
-      if (!ecoleId) {
-        showError('Impossible de créer une classe: compte non associé à une école.', classeMessage);
-        return;
+      // 1. Re-vérification de la session et de l'école (CRITIQUE pour RLS)
+      const { data: { user: currentUser }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !currentUser) {
+          showError('Session expirée. Veuillez vous reconnecter.', classeMessage);
+          return;
       }
+
+      // 2. Récupération fraîche de l'ID école depuis le profil
+      const { data: profile, error: profileErr } = await supabase
+          .from('profiles')
+          .select('ecole_id, role')
+          .eq('id', currentUser.id)
+          .single();
+
+      if (profileErr || !profile || !profile.ecole_id) {
+          console.error("Erreur profil/ecole_id:", profileErr, profile);
+          showError('Impossible de récupérer l\'identifiant de l\'école depuis votre profil.', classeMessage);
+          return;
+      }
+
+      // Mise à jour de la variable globale pour cohérence
+      ecoleId = profile.ecole_id;
       
       const nom = classeNomEl.value.trim();
       const niveau = classeNiveauEl.value;
@@ -276,12 +294,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       submitBtn.textContent = 'Création...';
 
       try {
+          // 3. Insertion avec l'ecole_id certifié
           const { error } = await supabase.from('classes').insert([{
               nom,
               niveau,
               cycle,
               serie: serie || null,
-              ecole_id: ecoleId
+              ecole_id: ecoleId // On utilise l'ID fraîchement récupéré
           }]);
 
           if (error) {
