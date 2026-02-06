@@ -63,13 +63,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadClassesFilter() {
-    const { data: classes } = await supabase
+    console.log("Paiements: Loading classes for ecole_id:", currentEcoleId);
+    // IMPORTANT: RLS is active, but we explicitly filter by ecole_id for safety
+    // if default value is present in DB, ensure we read it correctly
+    const { data: classes, error: err } = await supabase
         .from('classes')
         .select('*')
         .eq('ecole_id', currentEcoleId)
         .order('nom', { ascending: true });
+    
+    if (err) console.error("Paiements: Error loading classes", err);
+    console.log("Paiements: Classes found:", classes?.length);
+    
     const select = document.getElementById('classFilter');
     // Keep 'all' option
+    // Clear existing options except first
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
     if (classes) {
         classes.forEach(c => {
             const opt = document.createElement('option');

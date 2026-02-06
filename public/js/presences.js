@@ -96,11 +96,16 @@ async function loadClasses() {
     const isDirector = (profile.role === 'directeur' || profile.role === 'director' || (profile.role === 'pending_director' && profile.is_approved));
     currentEcoleId = profile.ecole_id;
 
+    console.log("Presences: Profile check", { role: profile.role, ecole_id: profile.ecole_id, isDirector });
+
     let data = [];
     let classesError = null;
 
+    // NOTE: Director sees all classes of their school.
+    // Professors see classes they are main professor for OR teach in.
     if (isDirector) {
         // Director sees all classes
+        // IMPORTANT: We filter by ecole_id, but we rely on RLS as well.
         const { data: all, error: err } = await supabase
             .from('classes')
             .select('*')
@@ -110,7 +115,7 @@ async function loadClasses() {
         classesError = err;
     } else {
         // Professor sees assigned classes
-        // 1. Main classes
+        // 1. Main classes (professeur_id = user.id)
         const { data: mainClasses, error: mainErr } = await supabase
             .from('classes')
             .select('*')

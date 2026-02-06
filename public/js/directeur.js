@@ -114,11 +114,19 @@ const init = async () => {
                  return;
              }
 
-             const { data, error } = await supabase.rpc('assign_professor_by_email', { target_email: email });
+             // Utilisation de admin_upsert_user comme demandé
+             const { data, error } = await supabase.rpc('admin_upsert_user', { 
+                 target_email: email,
+                 target_role: 'professeur',
+                 target_ecole_id: ecoleId,
+                 target_active: true
+             });
+
              if (error) {
                 alert(error.message || 'Erreur lors de l’ajout du professeur.');
                 return;
              }
+
              const ok = (data && data.success) !== false;
              if (ok) {
                  const displayUser = isPseudo ? email.split('@')[0] : email;

@@ -52,6 +52,14 @@ export async function login(email, password) {
     .select('role, ecole_id, is_approved')
     .eq('id', userId)
     .single();
+
+  // DEBUG: Check what we received
+  console.log("Login Profile Check:", { 
+      role: profile?.role, 
+      ecole_id: profile?.ecole_id, 
+      is_approved: profile?.is_approved 
+  });
+
   if (!profile || !profile.role) {
     if (errorEl) {
       errorEl.textContent = "Compte non activé";
@@ -68,14 +76,14 @@ export async function login(email, password) {
             L'administrateur doit approuver votre compte avant que vous puissiez accéder au tableau de bord.
           `;
           errorEl.style.display = "block";
-          errorEl.className = "error-message warning"; // Style jaune si dispo, sinon rouge
+          errorEl.className = "error-message warning"; 
       }
       return;
   }
 
   const role = (profile.role || "").trim().toLowerCase();
   
-  // Si le rôle est 'pending_director' mais qu'il est approuvé, on le traite comme un directeur
+  // NOTE: 'pending_director' is handled by DB trigger now, but we keep fallback just in case
   if (role === 'directeur' || role === 'director' || (role === 'pending_director' && profile.is_approved === true)) {
     window.location.href = 'dashboard-directeur.html';
     return;

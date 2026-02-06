@@ -172,6 +172,9 @@ let classNiveaux = {}; // Store levels for grading scale logic
             if (currentClasseId) {
                 await loadMatieres(currentClasseId, selectMatiere);
                 if (selectMatiere) selectMatiere.disabled = false;
+                // Show Bulletin Button
+                const btn = document.getElementById('btnBulletinTrimestre');
+                if (btn) btn.style.display = 'inline-block';
             }
             updateContextBadge();
         });

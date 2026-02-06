@@ -101,6 +101,7 @@ async function prepareGeneration() {
         // Fetch Official Coefficients
         let officialCoefs = [];
         try {
+            // UPDATED: Now selecting 'valeur_coef' explicitly as requested
             let coefQuery = supabase
                 .from('coefficients_officiels')
                 .select('matiere, valeur_coef')
