@@ -43,8 +43,7 @@ async function loadClasses() {
       const { data: subjectClasses, error: subErr } = await supabase
         .from('enseignements')
         .select('classe_id, classes(id, nom, niveau, ecole_id)')
-        .eq('professeur_id', user.id)
-        .eq('ecole_id', profile.ecole_id);
+        .eq('professeur_id', user.id);
 
       if (subErr) throw subErr;
 

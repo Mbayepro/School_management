@@ -441,34 +441,29 @@ let classNiveaux = {}; // Store levels for grading scale logic
         }
 
         let inserted = null;
-        let err1 = null;
         try {
+            // Updated for new schema: ensure 'nom' is used. Removed fallback to 'nom_matiere'.
             const res1 = await supabase
                 .from('matieres')
-                .insert([{ nom: name, ecole_id: ecoleId, classe_id: classeId, coefficient: numericCoef }])
+                .insert([{ 
+                    nom: name, 
+                    ecole_id: ecoleId, 
+                    classe_id: classeId, 
+                    coefficient: numericCoef 
+                }])
                 .select()
                 .single();
+
             if (!res1.error) inserted = res1.data;
-            else err1 = res1.error;
-        } catch (e) { err1 = e; }
-        if (!inserted) {
-            try {
-                const res2 = await supabase
-                    .from('matieres')
-                    .insert([{ nom_matiere: name, ecole_id: ecoleId, classe_id: classeId, coefficient: numericCoef }])
-                    .select()
-                    .single();
-                if (!res2.error) inserted = res2.data;
-                else throw res2.error;
-            } catch (err) {
-                const msg = (err?.message || err1?.message || '').toLowerCase();
-                if (msg.includes('row-level security') || msg.includes('rls')) {
-                    showToast(`Impossible de créer la matière "${name}" avec votre compte. Demandez au directeur.`, 'error');
-                } else {
-                    showToast(`Impossible de créer la matière "${name}": ${err?.message || err1?.message}`, 'error');
-                }
-                throw err;
+            else throw res1.error;
+        } catch (err) {
+            const msg = (err?.message || '').toLowerCase();
+            if (msg.includes('row-level security') || msg.includes('rls')) {
+                showToast(`Impossible de créer la matière "${name}" avec votre compte. Demandez au directeur.`, 'error');
+            } else {
+                showToast(`Impossible de créer la matière "${name}": ${err?.message}`, 'error');
             }
+            throw err;
         }
         return inserted.id;
     }
@@ -479,6 +474,13 @@ let classNiveaux = {}; // Store levels for grading scale logic
 
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (!profile) return;
+        
+        console.log("Notes.js Init - Profile loaded:", {
+            role: profile.role,
+            ecole_id: profile.ecole_id,
+            id: profile.id
+        });
+
         ecoleId = profile.ecole_id;
         try {
             const { data: ecoleRow } = await supabase.from('ecoles').select('nom, note_max').eq('id', ecoleId).single();
