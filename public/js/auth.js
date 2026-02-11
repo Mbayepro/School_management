@@ -92,7 +92,7 @@ export async function login(email, password) {
     window.location.href = 'dashboard-professeur.html';
     return;
   }
-  if (role === 'super_admin') {
+  if (role === 'super_admin' || role === 'superadmin') {
     window.location.href = 'dashboard-superadmin.html';
     return;
   }
