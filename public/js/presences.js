@@ -1,4 +1,6 @@
-import { supabase } from './supabaseClient.js';
+import { supabase, utils } from './supabaseClient.js';
+
+const { showToast } = utils;
 
 const classeSelect = document.getElementById('classeSelect');
 const presenceSection = document.getElementById('presenceSection');
@@ -15,7 +17,7 @@ let selectedClasseId = null;
 let selectedMatiereId = null;
 let presences = {};
 let classesMap = new Map();
-// currentEcoleId is declared below imports to be accessible
+let currentEcoleId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   todayDate.textContent = new Date().toLocaleDateString('fr-FR');
@@ -339,26 +341,33 @@ async function savePresences() {
   saveBtn.textContent = "Enregistrement...";
   
   try {
+      const records = [];
       for (const eleveId in presences) {
-        await supabase.from('presences').upsert({
+        records.push({
           eleve_id: eleveId,
           date: today,
           statut: presences[eleveId],
           matiere: mat,
           classe_id: selectedClasseId,
           ecole_id: currentEcoleId
-        }, { onConflict: 'eleve_id, date, matiere' });
+        });
       }
+
+      if (records.length > 0) {
+        const { error } = await supabase.from('presences').upsert(records, { onConflict: 'eleve_id, date, matiere' });
+        if (error) throw error;
+      }
+
       if (statusPill) {
         statusPill.textContent = 'Présences enregistrées';
         statusPill.classList.remove('hidden', 'alert', 'urgent');
         statusPill.classList.add('success');
       }
-      showToast('success', 'Présences enregistrées');
+      showToast('Présences enregistrées', 'success');
       await checkAlreadySaved();
   } catch(e) {
       console.error(e);
-      showToast('error', 'Erreur lors de l\'enregistrement');
+      showToast('Erreur lors de l\'enregistrement: ' + (e.message || ''), 'error');
       saveBtn.disabled = false;
       saveBtn.textContent = 'Réessayer';
   }

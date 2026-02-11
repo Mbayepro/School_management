@@ -720,22 +720,44 @@ const init = async () => {
       }
       
       async function loadData() {
+        if (!ecoleId) {
+            console.error("loadData: ecoleId is null");
+            return;
+        }
         classesById.clear();
         elevesByClass.clear();
 
-        const { data: classes } = await supabase
+        console.log("Chargement des données pour l'école:", ecoleId);
+
+        const { data: classes, error: classErr } = await supabase
           .from('classes')
           .select('id, nom, niveau')
           .eq('ecole_id', ecoleId)
           .order('nom');
 
+        if (classErr) {
+            console.error("Erreur chargement classes:", classErr);
+            throw classErr;
+        }
+
+        console.log(`${classes?.length || 0} classes trouvées.`);
         (classes || []).forEach(c => classesById.set(c.id, c));
 
-        const { data: eleves } = await supabase
+        if (classesById.size === 0) {
+            console.warn("Aucune classe trouvée pour cette école.");
+            return;
+        }
+
+        const { data: eleves, error: eleveErr } = await supabase
           .from('eleves')
           .select('id, nom, prenom, classe_id, tel_parent, actif')
           .in('classe_id', Array.from(classesById.keys()))
           .eq('actif', true);
+
+        if (eleveErr) {
+            console.error("Erreur chargement élèves:", eleveErr);
+            throw eleveErr;
+        }
 
         (eleves || []).forEach(e => {
           const list = elevesByClass.get(e.classe_id) || [];

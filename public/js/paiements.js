@@ -102,7 +102,7 @@ async function loadData() {
     const [elevesRes, paiementsRes] = await Promise.all([
         supabase
             .from('eleves')
-            .select('*, classes(nom)')
+            .select('*, classes!inner(id, nom)')
             .eq('ecole_id', currentEcoleId),
         supabase
             .from('paiements')
@@ -112,12 +112,20 @@ async function loadData() {
     ]);
 
     if (elevesRes.error) {
+        console.error("Paiements: Erreur chargement élèves:", elevesRes.error);
         listEl.innerHTML = `<div class="error">Erreur: ${elevesRes.error.message}</div>`;
         return;
     }
 
+    if (paiementsRes.error) {
+        console.error("Paiements: Erreur chargement paiements:", paiementsRes.error);
+        // On continue quand même car on peut vouloir voir la liste des élèves même si les paiements ont échoué
+    }
+
     allEleves = elevesRes.data || [];
-    allPayments = paiementsRes.data || []; // Even if error, default to empty to allow retry/UI render
+    allPayments = paiementsRes.data || [];
+    
+    console.log(`Paiements: ${allEleves.length} élèves et ${allPayments.length} paiements chargés.`);
 
     renderList();
     updateSummary();

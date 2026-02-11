@@ -90,6 +90,11 @@ CREATE POLICY "Paiements_All" ON public.paiements FOR ALL USING (
     ecole_id = public.get_my_ecole_id() OR public.get_my_role() IN ('super_admin', 'superadmin')
 );
 
+-- COEFFICIENTS OFFICIELS
+CREATE POLICY "Coefficients_All" ON public.coefficients_officiels FOR ALL USING (
+    ecole_id = public.get_my_ecole_id() OR public.get_my_role() IN ('super_admin', 'superadmin')
+);
+
 -- CONFIGURATIONS
 CREATE POLICY "Config_All" ON public.school_configurations FOR ALL USING (
     ecole_id = public.get_my_ecole_id() OR public.get_my_role() IN ('super_admin', 'superadmin')

@@ -148,6 +148,7 @@ CREATE TABLE public.coefficients_officiels (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     ecole_id UUID REFERENCES public.ecoles(id) ON DELETE CASCADE NOT NULL,
     niveau TEXT NOT NULL,
+    cycle TEXT, -- Ajouté pour compatibilité
     serie TEXT,
     matiere TEXT NOT NULL,
     valeur_coef NUMERIC DEFAULT 1,
