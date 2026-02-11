@@ -95,18 +95,23 @@ CREATE POLICY "Config_All" ON public.school_configurations FOR ALL USING (
     ecole_id = public.get_my_ecole_id() OR public.get_my_role() IN ('super_admin', 'superadmin')
 );
 
--- 5. FORCER L'ACTIVATION DU COMPTE PRINCIPAL
-UPDATE public.profiles 
-SET role = 'super_admin', 
-    is_approved = TRUE, 
-    active = TRUE
-WHERE email = 'mbayeadama669@gmail.com';
+-- 5. FORCER L'ACTIVATION ET LA VALIDATION DE TOUS LES COMPTES EXISTANTS
+-- On s'assure que chaque directeur a une école associée
+DO $$
+DECLARE
+    p RECORD;
+    new_ec_id UUID;
+BEGIN
+    FOR p IN SELECT id, email, ecole_id FROM public.profiles WHERE role IN ('director', 'directeur', 'pending_director') LOOP
+        IF p.ecole_id IS NULL THEN
+            INSERT INTO public.ecoles (nom) VALUES ('École de ' || p.email) RETURNING id INTO new_ec_id;
+            UPDATE public.profiles SET ecole_id = new_ec_id WHERE id = p.id;
+        END IF;
+    END LOOP;
+END $$;
 
--- S'assurer qu'un profil existe pour TOUS les utilisateurs Auth (Restauration d'urgence)
-INSERT INTO public.profiles (id, email, role, is_approved, active)
-SELECT id, email, 'pending_director', TRUE, TRUE
-FROM auth.users
-ON CONFLICT (id) DO UPDATE 
-SET is_approved = TRUE, active = TRUE;
+UPDATE public.profiles 
+SET is_approved = TRUE, 
+    active = TRUE;
 
 RAISE NOTICE 'Correctif appliqué. La récursion RLS est supprimée et les comptes sont activés.';

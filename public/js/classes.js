@@ -236,8 +236,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (!ecoleId) {
-    const msg = 'Impossible de récupérer l\'identifiant de l\'école. Veuillez contacter le support ou vous reconnecter.';
-    console.error(msg);
+    const msg = 'Votre compte n\'est pas encore associé à une école. Veuillez contacter le Super Admin ou relancer le script de réparation.';
+    console.error("ERREUR: ecoleId est NULL au chargement.");
     showError(msg, classeMessage);
     if (form) {
       Array.from(form.querySelectorAll('input, select, button')).forEach(el => { el.disabled = true; });
@@ -295,20 +295,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       try {
           // 3. Insertion avec l'ecole_id certifié
-          const { error } = await supabase.from('classes').insert([{
+          console.log("Tentative d'insertion de classe:", { nom, niveau, cycle, serie, ecole_id: ecoleId });
+          const { data: insertData, error: insertError } = await supabase.from('classes').insert([{
               nom,
               niveau,
               cycle,
               serie: serie || null,
-              ecole_id: ecoleId // On utilise l'ID fraîchement récupéré
-          }]);
+              ecole_id: ecoleId
+          }]).select();
 
-          if (error) {
-            console.error("Erreur Supabase INSERT:", error);
-            throw error;
+          if (insertError) {
+            console.error("Erreur détaillée Supabase INSERT:", {
+                message: insertError.message,
+                details: insertError.details,
+                hint: insertError.hint,
+                code: insertError.code
+            });
+            throw insertError;
           }
 
-          console.log("Succès création classe");
+          console.log("Succès création classe:", insertData);
           classeNomEl.value = '';
           classeMessage.textContent = 'Classe créée avec succès !';
           classeMessage.className = 'success-message';
