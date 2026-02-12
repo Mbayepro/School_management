@@ -131,7 +131,14 @@ const init = async () => {
               renderElevesList();
               updateFilteredMetrics(filterClasse?.value || '', filterNiveau?.value || '');
             } else {
-              const { data, error } = await supabase.from('eleves').insert([{ nom, prenom, classe_id: classeId, tel_parent: tel, actif: true, ecole_id: ecoleId }]).select().single();
+              const { data, error } = await supabase.from('eleves').insert([{ 
+                nom, 
+                prenom, 
+                classe_id: classeId, 
+                tel_parent: tel, 
+                actif: true, 
+                ecole_id: ecoleId 
+              }]).select().single();
               if (error) throw error;
               
               const created = data;
@@ -458,14 +465,14 @@ const init = async () => {
                   }
 
                   // Insert
-                  const { error } = await supabase.from('eleves').insert([{
-                      nom,
-                      prenom,
-                      classe_id: classeId,
-                      tel_parent: tel,
-                      actif: true,
-                      ecole_id: ecoleId
-                  }]);
+          const { error } = await supabase.from('eleves').insert([{
+              nom,
+              prenom,
+              classe_id: classeId,
+              tel_parent: tel,
+              actif: true,
+              ecole_id: ecoleId // ecoleId is available from closure
+          }]);
 
                   if (error) {
                       errors.push(`Erreur sauvegarde ${nom} ${prenom}: ${error.message}`);

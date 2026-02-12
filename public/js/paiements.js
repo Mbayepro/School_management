@@ -103,7 +103,8 @@ async function loadData() {
         supabase
             .from('eleves')
             .select('*, classes!inner(id, nom)')
-            .eq('ecole_id', currentEcoleId),
+            .eq('ecole_id', currentEcoleId)
+            .eq('actif', true),
         supabase
             .from('paiements')
             .select('*')

@@ -271,8 +271,18 @@ async function loadEleves(classeId) {
     .from('eleves')
     .select('*')
     .eq('classe_id', classeId)
+    .eq('actif', true)
     .order('nom', { ascending: true });
-  if (error) return;
+  if (error) {
+    console.error("Presences: Erreur chargement élèves:", error);
+    return;
+  }
+  
+  if (!data || data.length === 0) {
+    elevesList.innerHTML = '<div style="text-align:center; padding:20px; color:#64748b;">Aucun élève actif trouvé dans cette classe.</div>';
+    return;
+  }
+
   elevesList.innerHTML = '';
   presences = {};
   data.forEach(e => {

@@ -72,7 +72,9 @@ CREATE POLICY "Enseignements_View" ON public.enseignements FOR SELECT USING (
     public.get_my_role() IN ('director', 'directeur', 'super_admin', 'superadmin')
 );
 CREATE POLICY "Enseignements_SA" ON public.enseignements FOR ALL USING (public.get_my_role() IN ('super_admin', 'superadmin'));
-CREATE POLICY "Enseignements_Director" ON public.enseignements FOR ALL USING (public.get_my_role() IN ('director', 'directeur'));
+CREATE POLICY "Enseignements_Director" ON public.enseignements FOR ALL USING (
+    public.get_my_role() IN ('director', 'directeur', 'pending_director')
+);
 
 -- EVALUATIONS & NOTES
 CREATE POLICY "Evals_All" ON public.evaluations FOR ALL USING (
@@ -119,4 +121,7 @@ UPDATE public.profiles
 SET is_approved = TRUE, 
     active = TRUE;
 
-RAISE NOTICE 'Correctif appliqué. La récursion RLS est supprimée et les comptes sont activés.';
+DO $$ 
+BEGIN 
+    RAISE NOTICE 'Correctif appliqué. La récursion RLS est supprimée et les comptes sont activés.';
+END $$;

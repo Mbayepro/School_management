@@ -175,7 +175,8 @@ document.addEventListener('DOMContentLoaded', async () => {
               const { error: insErr } = await supabase.from('enseignements').insert({
                   classe_id: cid,
                   professeur_id: pid,
-                  matiere: matiere
+                  matiere: matiere,
+                  ecole_id: ecoleId
               });
 
               if (insErr) {
