@@ -21,17 +21,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const { data: profile } = await supabase
+    // Récupération forcée du profil pour garantir l'ecole_id
+    const { data: profile, error: pErr } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
-    if (!utils.checkRole(profile, ['directeur', 'director'])) {
+    
+    if (pErr || !profile) {
+        console.error("Erreur profil:", pErr);
+        const storedId = localStorage.getItem('current_ecole_id');
+        if (storedId) {
+            currentEcoleId = storedId;
+        } else {
+            window.location.href = 'login.html';
+            return;
+        }
+    }
+
+    if (profile && profile.ecole_id) {
+        currentEcoleId = profile.ecole_id;
+        // Sauvegarde de secours
+        localStorage.setItem('current_ecole_id', currentEcoleId);
+    }
+
+    if (!utils.checkRole(profile || {}, ['directeur', 'director', 'pending_director'])) {
         utils.showToast('Accès réservé au directeur', 'error');
         setTimeout(() => window.location.href = 'index.html', 1500);
         return;
     }
-    currentEcoleId = profile.ecole_id;
     
     // Fetch School Details
     const { data: ecole, error: ecoleErr } = await supabase
@@ -57,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('statusFilter').addEventListener('change', renderList);
     document.getElementById('searchFilter').addEventListener('input', renderList);
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-        await auth.signOut();
+        await supabase.auth.signOut();
         window.location.href = 'login.html';
     });
 });
@@ -102,7 +120,7 @@ async function loadData() {
     const [elevesRes, paiementsRes] = await Promise.all([
         supabase
             .from('eleves')
-            .select('*, classes!inner(id, nom)')
+            .select('*, classes(id, nom)')
             .eq('ecole_id', currentEcoleId)
             .eq('actif', true),
         supabase
@@ -338,39 +356,53 @@ window.togglePayment = async (eleveId, isCurrentlyPaid) => {
     
     if (isCurrentlyPaid) {
         if (!confirm('Voulez-vous annuler ce paiement ?')) return;
-        // Set status to 'en_attente' and montant to 0 or null?
-        // Upsert with updated values
-        await supabase.from('paiements').upsert({
-            eleve_id: eleveId,
-            mois: month,
-            statut: 'en_attente',
-            montant: 0,
-            ecole_id: currentEcoleId
-        }, { onConflict: 'eleve_id, mois' });
+        
+        try {
+            const { error } = await supabase.from('paiements')
+                .delete()
+                .match({ eleve_id: eleveId, mois: month });
+            
+            if (error) throw error;
+            utils.showToast("Paiement annulé", "success");
+        } catch (err) {
+            console.error("Erreur annulation:", err);
+            utils.showToast("Erreur lors de l'annulation", "error");
+        }
     } else {
         const amountStr = prompt('Montant du paiement (FCFA) :', '10000');
         if (!amountStr) return;
         const amount = parseInt(amountStr.replace(/[^0-9]/g, ''));
-        const { data: existing } = await supabase
-            .from('paiements')
-            .select('*')
-            .eq('ecole_id', currentEcoleId)
-            .eq('mois', month);
-        const countPaid = (existing || []).filter(p => p.statut === 'paye').length;
-        // Find existing payment for this student if any
-        const existingPayment = (existing || []).find(p => p.eleve_id === eleveId);
         
-        // Preserve existing number if available, else generate new
-        const numero = existingPayment?.numero || `REÇU-${String(countPaid + 1).padStart(3, '0')}`;
-        
-        await supabase.from('paiements').upsert({
-            eleve_id: eleveId,
-            mois: month,
-            statut: 'paye',
-            montant: amount,
-            numero,
-            ecole_id: currentEcoleId
-        }, { onConflict: 'eleve_id, mois' });
+        try {
+            // Get current count for receipt number
+            const { data: existing } = await supabase
+                .from('paiements')
+                .select('id, numero')
+                .eq('ecole_id', currentEcoleId)
+                .eq('mois', month);
+            
+            const countPaid = (existing || []).length;
+            const numero = `REÇU-${String(countPaid + 1).padStart(3, '0')}`;
+            
+            // On utilise un simple insert pour éviter les problèmes de contrainte complexe
+            // Si l'élève a déjà payé pour ce mois, on supprime l'ancien avant
+            await supabase.from('paiements').delete().match({ eleve_id: eleveId, mois: month });
+
+            const { error } = await supabase.from('paiements').insert([{
+                eleve_id: eleveId,
+                mois: month,
+                statut: 'paye',
+                montant: amount,
+                numero: numero,
+                ecole_id: currentEcoleId
+            }]);
+
+            if (error) throw error;
+            utils.showToast("Paiement enregistré avec succès", "success");
+        } catch (err) {
+            console.error("Erreur paiement:", err);
+            utils.showToast("Erreur lors de l'enregistrement", "error");
+        }
     }
     
     // Refresh data

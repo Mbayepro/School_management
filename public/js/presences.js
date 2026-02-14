@@ -92,11 +92,19 @@ async function loadClasses() {
 
     if (profileErr || !profile) {
         console.error("Erreur profil:", profileErr);
-        return;
+        const storedId = localStorage.getItem('current_ecole_id');
+        if (storedId) {
+            currentEcoleId = storedId;
+        } else {
+            return;
+        }
     }
 
-    const isDirector = (profile.role === 'directeur' || profile.role === 'director' || (profile.role === 'pending_director' && profile.is_approved));
-    currentEcoleId = profile.ecole_id;
+    const isDirector = (profile && (profile.role === 'directeur' || profile.role === 'director' || (profile.role === 'pending_director' && profile.is_approved)));
+    if (profile && profile.ecole_id) {
+        currentEcoleId = profile.ecole_id;
+        localStorage.setItem('current_ecole_id', currentEcoleId);
+    }
 
     console.log("Presences: Profile check", { role: profile.role, ecole_id: profile.ecole_id, isDirector });
 
@@ -111,7 +119,7 @@ async function loadClasses() {
         const { data: all, error: err } = await supabase
             .from('classes')
             .select('*')
-            .eq('ecole_id', profile.ecole_id)
+            .eq('ecole_id', currentEcoleId)
             .order('nom', { ascending: true });
         data = all;
         classesError = err;

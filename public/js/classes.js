@@ -233,7 +233,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Fallback if not found in profiles (legacy support or race condition)
   if (!ecoleId) {
-      console.warn("Ecole ID not found in profiles.");
+      console.warn("Ecole ID not found in profiles. Trying localStorage fallback.");
+      const storedId = localStorage.getItem('current_ecole_id');
+      if (storedId) {
+          ecoleId = storedId;
+      }
   }
 
   if (!ecoleId) {
